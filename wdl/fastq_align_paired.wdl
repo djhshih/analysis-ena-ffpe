@@ -47,7 +47,7 @@ task fastq_bwa_mem_paired {
 	}
 
 	runtime {
-		docker: "djhshih/seqkit:0.1"
+		# docker: "djhshih/seqkit:0.1"
 		memory: "${memory_gb} GB"
 		cpu: "${cpu}"
 		disks: "local-disk ${diskspace_gb} HDD"
@@ -90,7 +90,7 @@ task bam_sort_coord {
 	}
 
 	runtime {
-		docker: "djhshih/seqkit:0.1"
+		# docker: "djhshih/seqkit:0.1"
 		memory: "${memory_gb} GB"
 		cpu: "${cpu}"
 		disks: "local-disk ${diskspace_gb} HDD"
