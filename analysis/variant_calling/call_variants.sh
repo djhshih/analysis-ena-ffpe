@@ -19,6 +19,7 @@ ref_path="../../data/ref/Homo_sapiens_assembly38.fasta"
 germline_resource="../../data/gatk-best-practices/somatic-hg38/af-only-gnomad.hg38.vcf.gz"
 panel_of_normals="../../data/gatk-best-practices/somatic-hg38/1000g_pon.hg38.vcf.gz"
 small_exac_common="../../data/gatk-best-practices/somatic-hg38/small_exac_common_3.hg38.vcf.gz"
+index_bundle="../../data/gatk-test-data/mutect2/Homo_sapiens_assembly38.index_bundle"
 
 if [ ! -f $bam_path ]; then
     echo "$bam_path does not exist"
@@ -87,6 +88,16 @@ gatk FilterMutectCalls \
     --contamination-table "${outdir}/${sample_id}_contamination.table" \
     --ob-priors "${outdir}/${sample_id}_read-orientation-model.tar.gz" \
     -O "${outdir}/${sample_id}_filtered.vcf"
+
+
+echo -e "\nRunning GATK FilterAlignmentArtifacts...\n"
+
+gatk FilterAlignmentArtifacts \
+    -R $ref_path \
+    -V "${outdir}/${sample_id}_filtered.vcf" \
+    -I $bam_path \
+    --bwa-mem-index-image $index_bundle \
+    -O "${outdir}/${sample_id}_alignment_artifacts_filtered.vcf"
 
 
 echo -e "\n##########################################################"
