@@ -2,3 +2,5 @@
 *.bai
 *.fastq*
 **/cromwell*
+**/script*
+*.pdf
