@@ -13,7 +13,7 @@ import mutation_signatures as ms
 def eval_mut_sig(vcf_path, reference_genome) -> None:
 	sample_name = os.path.basename(vcf_path).removesuffix(".gz").removesuffix(".vcf")
 
-	outdir = f"../../evaluations/{sample_name}"
+	outdir = f"../../evaluations/mutation_signatures/{sample_name}"
 	os.makedirs(outdir, exist_ok=True)
 
 	variants_96c = ms.variants_mut_profile(vcf_path, sample_name, reference_genome)
