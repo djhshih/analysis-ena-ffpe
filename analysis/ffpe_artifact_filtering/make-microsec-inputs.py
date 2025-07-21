@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import polars as pl
 import pysam
 import pandas as pd
