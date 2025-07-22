@@ -75,13 +75,19 @@ snv_mask = (
 	(pl.col("ref").str.len_chars() == 1)
 )
 
+## List paths to VCFs
 all_vcf_paths = glob.glob("../../data/vcf/*/*.vcf")
 
+## Read in the sample annotation table
 lookup_table = pl.read_csv("../../annot/sample-info_matched-ff-ffpe_on-pat-id.tsv", separator="\t")
+
+## Make a dataframe with only the FFPE samples
 ffpe_vcf_ids = lookup_table.filter(pl.col("preservation") == "FFPE").get_column("sample_alias")
 
+## Filter the list to only keep the FFPE VCF paths
 ffpe_vcf_paths = [vcf_path for vcf_path in all_vcf_paths if any(fid in vcf_path for fid in ffpe_vcf_ids)]
 
+# Get mutation counts for the FFPE vcfs and groud truth. [SNVs, Non-SNVs, C>T Mutations, Non-C>T mutations]
 metrics = []
 
 for path in ffpe_vcf_paths:
@@ -180,10 +186,9 @@ for path in ffpe_vcf_paths:
 metrics_df = pl.DataFrame(metrics).sort(["ffpe_sample_id"])
 
 metrics_df.write_csv(f"{root_outdir}/ffpe_frozen_variants-summary_statistics.tsv", separator="\t")
+print(f"Saved summary statistics for FFPE and Frozen (Ground Truth). \nLocation: {root_outdir}/ffpe_frozen_variants-summary_statistics.tsv\n")
 
-# %% [markdown]
-# ### Make a metrics dataframe for outputs of each filtering model
-
+### Make a metrics dataframe for outputs of each ffpe filtering model
 def variant_count(variants) -> tuple:
 	
 	all_mutations = variants.shape[0]
@@ -239,8 +244,5 @@ for path in ffpe_vcf_paths:
 
 model_variant_count = pl.DataFrame(counts).sort(["ffpe_sample_id"])
 
-
-
 model_variant_count.write_csv(f"{root_outdir}/models_variants-summary_statistics.tsv", separator="\t")
-
-
+print(f"Saved summary statistics for variants present across the outputs for each model \nLocation: {root_outdir}/models_variants-summary_statistics.tsv\n")

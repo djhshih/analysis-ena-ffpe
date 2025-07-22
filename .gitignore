@@ -4,3 +4,4 @@
 **/cromwell*
 **/script*
 *.pdf
+**/sbatch_log

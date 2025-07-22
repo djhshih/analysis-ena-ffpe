@@ -1,0 +1,15 @@
+ffpe_sample_id	variant_caller	ffpe_total_mutations	ffpe_total_non_snvs	ffpe_total_snvs	ffpe_ct_snvs	ffpe_non_ct_snvs	gt_total_mutations	gt_total_non_snvs	gt_total_snvs	gt_ct_snvs	gt_non_ct_snvs	ffpe_snvs_in_gt	ffpe_snvs_not_in_gt	ffpe_ct_snvs_in_gt	ffpe_ct_snvs_not_in_gt	ffpe_non_ct_snvs_in_gt	ffpe_non_ct_snvs_not_in_gt
+Pat01_Meta_FFPE_ERR791893	MuTect2	150	12	138	53	85	43	0	43	10	33	3	135	1	52	2	83
+Pat03_Meta_FFPE_ERR791895	MuTect2	168	20	148	64	84	46	0	46	8	38	4	144	2	62	2	82
+Pat04_Meta_FFPE_ERR791896	MuTect2	126	12	114	42	72	65	0	65	10	55	2	112	2	40	0	72
+Pat04_Prim_FFPE_ERR791897	MuTect2	95	8	87	48	39	65	0	65	10	55	0	87	0	48	0	39
+Pat08_Meta_FFPE_ERR791901	MuTect2	116	20	96	31	65	110	0	110	17	93	5	91	2	29	3	62
+Pat09_Meta_FFPE_ERR791902	MuTect2	132	9	123	66	57	92	0	92	17	75	2	121	1	65	1	56
+Pat10_Meta_FFPE_ERR791903	MuTect2	90	14	76	26	50	70	0	70	12	58	4	72	2	24	2	48
+Pat10_Prim_FFPE_ERR791904	MuTect2	111	8	103	64	39	70	0	70	12	58	3	100	1	63	2	37
+Pat11_Meta_FFPE_ERR791905	MuTect2	115	7	108	41	67	55	0	55	9	46	6	102	2	39	4	63
+Pat11_Prim_FFPE_ERR791906	MuTect2	110	11	99	54	45	55	0	55	9	46	3	96	1	53	2	43
+Pat12_Meta_FFPE_ERR791907	MuTect2	149	19	130	64	66	101	0	101	16	85	2	128	2	62	0	66
+Pat13_Meta_FFPE_ERR791908	MuTect2	174	22	152	53	99	51	0	51	8	43	1	151	0	53	1	98
+Pat14_Meta_FFPE_ERR791909	MuTect2	148	17	131	37	94	101	0	101	10	91	3	128	2	35	1	93
+Pat14_Prim_FFPE_ERR791910	MuTect2	154	7	147	109	38	101	0	101	10	91	1	146	1	108	0	38

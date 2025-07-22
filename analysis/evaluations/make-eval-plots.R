@@ -8,7 +8,6 @@ library(tidyverse)
 library(glue)
 library(patchwork)
 library(grid)
-
 library(hrbrthemes)
 library(viridis)
 
@@ -145,8 +144,6 @@ make.plot.auc.text <- function(multi.model.eval.object, model.names = c("mobsnvf
 	)
 }
 
-
-
 make.roc.prc.plot <- function(roc.plot, prc.plot, auc_grob, snv_count = NULL, subtitle = NULL, caption = NULL) {
 	
 	roc.plot <- roc.plot + ggtitle("ROC")
@@ -266,7 +263,7 @@ for (i in seq_len(dim(ffpe_vcfs)[1])) {
 			annotate_truth(truths)
 
 
-	stdout <- glue("\n
+	stdout <- glue("\n\n{i}. Making ROC and PRC plots for:
 FFPE Sample: {sample_name}
 Frozen/Truth Sample: {truth_sample_name}
 SNVs Evaluated: {dim(all.models.scores.labels)[1]}
@@ -396,8 +393,9 @@ truth_n_artifacts : {dim(filter(all.models.scores.labels, !truth))[1]}
 	qwrite(all.models.scores.labels, glue("{out_dir}/{sample_name}_dataset_labeled.tsv"))
 
 	# Mark the cutoff position for different values of fp-cut
+	print("Determining mobsnvf cutoff point across different values of fp-cut:")
 	for (cutoff_value in cutoffs) {
-
+		print(glue("\t{cutoff_value}"))
 		mobsnvf.cut.metrics <- all.models.scores.labels |> 
 			# filter(chrom %in% standard_chromosomes) |>
 			# drop_na() |>
@@ -435,15 +433,18 @@ truth_n_artifacts : {dim(filter(all.models.scores.labels, !truth))[1]}
 			width = 7, height = 5
 		)
 	}
+	print(glue("Done\n"))
 
 	all.models.scores.labels <- all.models.scores.labels |> mutate(variant_caller = variant_caller, sample_name = sample_name)
 	all.samples.all.models.scores.labels <- rbind(all.samples.all.models.scores.labels, all.models.scores.labels)
 	
 }
 
-qwrite(all.samples.all.models.scores.labels, glue("{main.outdir}/all_samples_all_models_scores_labels.tsv"))
+print(glue("Finished making per sample ROC/PRC plots. Directory: {main.outdir}/roc-prc-plots/\n"))
 
-options(repr.plot.width = 7, repr.plot.height = 5)
+qwrite(all.samples.all.models.scores.labels, glue("{main.outdir}/all_samples_all_models_scores_labels.tsv"))
+print(glue("Saved scores and truth lables of all models to: {main.outdir}/all_samples_all_models_scores_labels.tsv"))
+# options(repr.plot.width = 7, repr.plot.height = 5)
 
 eval_df <- all.samples.all.models.scores.labels
 all.samples.eval <- make.multimodel.eval.object(eval_df, score_columns = c("FOBP", "VAFF", "SOB", "msec"), names = c("mobsnvf", "vafsnvf", "sobdetector", "microsec"))
@@ -452,7 +453,7 @@ all.model.roc.plot <- autoplot(all.samples.eval, "ROC")
 all.model.prc.plot <- autoplot(all.samples.eval, "PRC")
 
 
-all.muse.samples.roc.prc.plot <- make.roc.prc.plot(
+all.samples.roc.prc.plot <- make.roc.prc.plot(
 	all.model.roc.plot, 
 	all.model.prc.plot, 
 	plot.auc.text, 
@@ -460,17 +461,89 @@ all.muse.samples.roc.prc.plot <- make.roc.prc.plot(
 	snv_count = dim(eval_df)[1]
 )
 
-all.muse.samples.roc.prc.plot
+# all.samples.roc.prc.plot
+print(glue("Saved ROC and PRC plots across all samples to {main.outdir}/roc-prc-plots/all_samples_all_roc_prc_plot.pdf\n"))
+qdraw(all.samples.roc.prc.plot, glue("{main.outdir}/roc-prc-plots/all_samples_all_roc_prc_plot.pdf"), width = 7, height = 5)
 
-qdraw(all.muse.samples.roc.prc.plot, glue("{main.outdir}/roc-prc-plots/all_samples_all_roc_prc_plot.pdf"), width = 7, height = 5)
+
+## Obtain AUROC and AUPRC from the evaluation results saved previously
+eval_res_path <- list.files(main.outdir, pattern = "_eval_res\\.rds", recursive = TRUE, full.names = TRUE)
+
+## Append AUROC and AUPRC for each model to a dataframe
+model.aucs <- data.frame()
+
+for (path in eval_res_path) {
+	parts <- stringr::str_split_1(path, "/")
+	sample_id <- sub("_eval_res.rds", "", parts[5])
+	variant_caller <- "MuTect2"
+
+	eval_res <- readRDS(path)
+	models <- names(eval_res)
+
+	for (model in models[models != "all_models"]) {
+		aucs <- auc(eval_res[[model]])
+		auroc <- aucs |> filter(curvetypes == "ROC") |> pull(aucs)
+		auprc <- aucs |> filter(curvetypes == "PRC") |> pull(aucs)
+		model.aucs <- bind_rows(
+			model.aucs,
+			data.frame(
+				sample_id = sample_id,
+				variant_caller = variant_caller,
+				model = model,
+				auroc = auroc,
+				auprc = auprc,
+				stringsAsFactors = FALSE
+			)
+		)
+	}
+}
+
+## Save the AUCs
+write.table(model.aucs, glue("{main.outdir}/aucs.tsv"), sep = "\t", row.names = FALSE)
+print(glue("Saved AUCs of each sample at {main.outdir}/aucs.tsv"))
+
+
+
+## Find VCFs where mobsnvf performs worse than other models
+print(glue("Determining where MOBSNVF performs worse than other models"))
+vcfs.mobsnvf.lower.auroc <- model.aucs |>
+  group_by(sample_id) |>
+  # Summarize mobsnvf AUROC and the max AUROC of the others
+  summarize(
+    mob_auroc   = auroc[model == "mobsnvf"],
+    others_max  = max(auroc[model != "mobsnvf"])
+  ) |> filter(mob_auroc < others_max) |>
+  pull(sample_id)
+
+lower.mobsnvf.auroc <- model.aucs |> filter(sample_id %in% vcfs.mobsnvf.lower.auroc)
+# lower.mobsnvf.auroc
+
+vcfs.mobsnvf.lower.auprc <- model.aucs |>
+  group_by(sample_id) |>
+  # compute mobsnvf auprc and the min auprc of the others
+  summarize(
+    mob_auprc   = auprc[model == "mobsnvf"],
+    others_max  = max(auprc[model != "mobsnvf"])
+  ) |> filter(mob_auprc < others_max) |>
+  pull(sample_id)
+
+lower.mobsnvf.auprc <- model.aucs |> filter(sample_id %in% vcfs.mobsnvf.lower.auprc)
+# lower.mobsnvf.auprc
+
+print(glue("\tSaving the AUROC and AUPRC for these samples to a table"))
+
+
+## Save the AUCs of these specific samples to examine later
+write.table(lower.mobsnvf.auroc, glue("{main.outdir}/mobsnvf_lower_auroc.tsv"), sep = "\t", row.names = FALSE)
+write.table(lower.mobsnvf.auprc, glue("{main.outdir}/mobsnvf_lower_auprc.tsv"), sep = "\t", row.names = FALSE)
+print(glue("\t\t- {main.outdir}/mobsnvf_lower_auroc.tsv"))
+print(glue("\t\t- {main.outdir}/mobsnvf_lower_auprc.tsv\n"))
 
 ## Make boxplots
-
 scale = 0.4; w = 14*scale; h = 12*scale
 options(repr.plot.width = w, repr.plot.height = h)
 
-## Box plotting function
-
+### Box plotting function
 make_auc_boxplot <- function(
     df,
     auc_type_col,
@@ -533,72 +606,8 @@ make_auc_boxplot <- function(
     return(auc_model_boxplot)
 }
 
-
-## Obtain AUROC and AUPRC from the evaluation results saved previously
-
-eval_res_path <- list.files(main.outdir, pattern = "_eval_res\\.rds", recursive = TRUE, full.names = TRUE)
-
-## Append to a dataframe
-model.aucs <- data.frame()
-
-for (path in eval_res_path) {
-	parts <- stringr::str_split_1(path, "/")
-	sample_id <- sub("_eval_res.rds", "", parts[5])
-	variant_caller <- "MuTect2"
-
-	eval_res <- readRDS(path)
-	models <- names(eval_res)
-
-	for (model in models[models != "all_models"]) {
-		aucs <- auc(eval_res[[model]])
-		auroc <- aucs |> filter(curvetypes == "ROC") |> pull(aucs)
-		auprc <- aucs |> filter(curvetypes == "PRC") |> pull(aucs)
-		model.aucs <- bind_rows(
-			model.aucs,
-			data.frame(
-				sample_id = sample_id,
-				variant_caller = variant_caller,
-				model = model,
-				auroc = auroc,
-				auprc = auprc,
-				stringsAsFactors = FALSE
-			)
-		)
-	}
-}
-
-
-## Find VCFs where mobsnvf performs worse than other models
-
-vcfs.mobsnvf.lower.auroc <- model.aucs |>
-  group_by(sample_id) |>
-  # Summarize mobsnvf AUROC and the max AUROC of the others
-  summarize(
-    mob_auroc   = auroc[model == "mobsnvf"],
-    others_max  = max(auroc[model != "mobsnvf"])
-  ) |> filter(mob_auroc < others_max) |>
-  pull(sample_id)
-
-lower.mobsnvf.auroc <- model.aucs |> filter(sample_id %in% vcfs.mobsnvf.lower.auroc)
-# lower.mobsnvf.auroc
-
-vcfs.mobsnvf.lower.auprc <- model.aucs |>
-  group_by(sample_id) |>
-  # compute mobsnvf auprc and the min auprc of the others
-  summarize(
-    mob_auprc   = auprc[model == "mobsnvf"],
-    others_max  = max(auprc[model != "mobsnvf"])
-  ) |> filter(mob_auprc < others_max) |>
-  pull(sample_id)
-
-lower.mobsnvf.auprc <- model.aucs |> filter(sample_id %in% vcfs.mobsnvf.lower.auprc)
-# lower.mobsnvf.auprc
-
-write.table(model.aucs, glue("{main.outdir}/aucs.tsv"), sep = "\t", row.names = FALSE)
-write.table(lower.mobsnvf.auroc, glue("{main.outdir}/mobsnvf_lower_auroc.tsv"), sep = "\t", row.names = FALSE)
-write.table(lower.mobsnvf.auprc, glue("{main.outdir}/mobsnvf_lower_auprc.tsv"), sep = "\t", row.names = FALSE)
-
-
+### Function to make AUPRC and AUROC plots from multiple variant callers using the make_auc_boxplot function. 
+### We only use mutect2 in this particular case case
 make_all_auc_boxplots <- function(results, scale = 0.4, text_scale = 0.5, w = 14*scale, h = 12*scale, 
 	variant_callers = c("all", "muse", "mutect2", "somaticsniper", "varscan2")
 	) {
@@ -627,34 +636,25 @@ make_all_auc_boxplots <- function(results, scale = 0.4, text_scale = 0.5, w = 14
 	return(plots)
 }
 
-# Call the function
+print(glue("Making AUROC and AUPRC boxplots"))
+# Call the plotting function
 all_auc_boxplots <- make_all_auc_boxplots(model.aucs, scale = 0.4, text_scale = 0.5, w = w, h = h, variant_callers = c("MuTect2"))
 
-
-### AUROC
-
-show(all_auc_boxplots$auroc$MuTect2)
-
-### AUPRC
-
-show(all_auc_boxplots$auprc$MuTect2)
-
-
-
+# Set outdir for saving plots
 outdir = glue("{main.outdir}/box-plots")
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
-# Example qdraw usage for AUPRC plots
-# qdraw(all_auc_boxplots$auprc$all, file = glue("{outdir}/auprc_all_wtype_boxplot.pdf"), width = w, height = h)
-# qdraw(all_auc_boxplots$auprc$muse, file = glue("{outdir}/auprc_muse_boxplot.pdf"), width = w, height = h)
-qdraw(all_auc_boxplots$auprc$MuTect2, file = glue("{outdir}/auprc_mutect2_boxplot.pdf"), width = w, height = h)
-# qdraw(all_auc_boxplots$auprc$somaticsniper, file = glue("{outdir}/auprc_somaticsniper_boxplot.pdf"), width = w, height = h)
-# qdraw(all_auc_boxplots$auprc$varscan2, file = glue("{outdir}/auprc_varscan2_boxplot.pdf"), width = w, height = h)
+### AUROC
+show(all_auc_boxplots$auroc$MuTect2)
 
-# Example qdraw usage for AUROC plots
-# qdraw(all_auc_boxplots$auroc$all, file = glue("{outdir}/auroc_all_wtype_boxplot.pdf"), width = w, height = h)
-# qdraw(all_auc_boxplots$auroc$muse, file = glue("{outdir}/auroc_muse_boxplot.pdf"), width = w, height = h)
+##### Save AUROC plots
 qdraw(all_auc_boxplots$auroc$MuTect2, file = glue("{outdir}/auroc_mutect2_boxplot.pdf"), width = w, height = h)
-# qdraw(all_auc_boxplots$auroc$somaticsniper, file = glue("{outdir}/auroc_somaticsniper_boxplot.pdf"), width = w, height = h)
-# qdraw(all_auc_boxplots$auroc$varscan2, file = glue("{outdir}/auroc_varscan2_boxplot.pdf"), width = w, height = h)
+
+### AUPRC
+show(all_auc_boxplots$auprc$MuTect2)
+
+#### Save AUPRC plots
+qdraw(all_auc_boxplots$auprc$MuTect2, file = glue("{outdir}/auprc_mutect2_boxplot.pdf"), width = w, height = h)
+
+print(glue("Done.\nBox-Plots saved to {outdir}/"))
 
