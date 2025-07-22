@@ -4,17 +4,18 @@
 Here we use data from ENA PRJEB8754 to compare the performance of various FFPE artifact filtering tools on paired FFPE and Fresh Frozen samples in the dataset.
 
 ## Dependencies
-- Python
+- python
 - R
 - SOBDetector (included)
-- htspan [djhshih/htspan](https://github.com/djhshih/htspan)
+- htspan ([djhshih/htspan](https://github.com/djhshih/htspan))
 - samtools
 - bcftools
 - cromwell
 - GATK
 - gsutil
-- rgsam [djhshih/rgsam](https://github.com/djhshih/rgsam)
-- dlazy [djhshih/dlazy](https://github.com/djhshih/dlazy/tree/main)
+- rgsam ([djhshih/rgsam](https://github.com/djhshih/rgsam))
+- dlazy ([djhshih/dlazy](https://github.com/djhshih/dlazy/tree/main))
+- openjdk
 
 ### R packages
 - tidyverse
@@ -27,7 +28,7 @@ Here we use data from ENA PRJEB8754 to compare the performance of various FFPE a
 - grid
 - hrbrthemes
 - viridis
-- MicroSEC
+- MicroSEC ([MANO-B/MicroSEC](https://github.com/MANO-B/MicroSEC))
 - Rsamtools
 - BiocGenerics
 - Biostrings
