@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=ena-align-reads        # 1. Job name
 #SBATCH --mail-type=BEGIN,END,FAIL    # 2. Send email upon events (Options: NONE, BEGIN, END, FAIL, ALL)
-#SBATCH --mail-user=moyukh@hku.hk     #    Email address to receive notification
+#SBATCH --mail-user=user@domain    Email address to receive notification
 #SBATCH --partition=amd               # 3. Request a partition
 #SBATCH --qos=normal                  # 4. Request a QoS
 #SBATCH --ntasks=24                   # 5. Request total number of tasks (MPI workers)

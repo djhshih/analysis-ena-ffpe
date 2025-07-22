@@ -7,14 +7,14 @@ Here we use data from ENA PRJEB8754 to compare the performance of various FFPE a
 - Python
 - R
 - SOBDetector (included)
-- htspan (link)
+- htspan [djhshih/htspan](https://github.com/djhshih/htspan)
 - samtools
 - bcftools
 - cromwell
 - GATK
 - gsutil
-- rgsam
-- dlazy
+- rgsam [djhshih/rgsam](https://github.com/djhshih/rgsam)
+- dlazy [djhshih/dlazy](https://github.com/djhshih/dlazy/tree/main)
 
 ### R packages
 - tidyverse
@@ -118,5 +118,4 @@ Here we use data from ENA PRJEB8754 to compare the performance of various FFPE a
 https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0127146
 
 https://www.ebi.ac.uk/ena/browser/view/PRJEB8754
-
 
