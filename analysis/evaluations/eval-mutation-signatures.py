@@ -10,10 +10,10 @@ sys.path.append(module_path)
 import mutation_signatures as ms
 
 
-def eval_mut_sig(vcf_path, reference_genome) -> None:
+def eval_mut_sig(vcf_path, reference_genome, outdir_root) -> None:
 	sample_name = os.path.basename(vcf_path).removesuffix(".gz").removesuffix(".vcf")
 
-	outdir = f"../../evaluations/mutation_signatures/{sample_name}"
+	outdir = f"{outdir_root}/mutation_signatures/{sample_name}"
 	os.makedirs(outdir, exist_ok=True)
 
 	variants_96c = ms.variants_mut_profile(vcf_path, sample_name, reference_genome)
@@ -35,9 +35,10 @@ def main() -> None:
 	vcf_paths = sorted(glob.glob("../../data/vcf/*/*.vcf"))
 	reference_genome_path= "../../data/ref/Homo_sapiens_assembly38.fasta"
 	reference_genome = pysam.FastaFile(reference_genome_path)
+	outdir_root = "../../evaluations/alt_flags_no_pon"
 
 	for vcf_path in vcf_paths:
-		eval_mut_sig(vcf_path, reference_genome)
+		eval_mut_sig(vcf_path, reference_genome, outdir_root)
   
 
 if __name__ == "__main__":

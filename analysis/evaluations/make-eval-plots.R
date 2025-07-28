@@ -1,4 +1,4 @@
-# Make evaluation plots for FFPE SNVF results
+# # Make evaluation plots for FFPE SNVF results
 
 library(io)
 library(precrec)
@@ -8,16 +8,18 @@ library(tidyverse)
 library(glue)
 library(patchwork)
 library(grid)
+
 library(hrbrthemes)
 library(viridis)
 
-main.outdir <- "../../evaluations"
+main.outdir <- "../../evaluations/alt_flags_no_pon"
 
 add_id <- function(d) {
 	d$snv <- paste(d$chrom, d$pos, d$ref, d$alt, sep="_")
 	d
 }
 
+# label this properly
 annotate_truth <- function(d, positives) {
 	d$truth <- d$snv %in% positives$snv;
 	d
@@ -144,6 +146,8 @@ make.plot.auc.text <- function(multi.model.eval.object, model.names = c("mobsnvf
 	)
 }
 
+
+
 make.roc.prc.plot <- function(roc.plot, prc.plot, auc_grob, snv_count = NULL, subtitle = NULL, caption = NULL) {
 	
 	roc.plot <- roc.plot + ggtitle("ROC")
@@ -192,6 +196,7 @@ ffpe_vcfs <- lookup_table |>
 	filter(preservation == "FFPE")
 
 all.samples.all.models.scores.labels <- data.frame()
+all.sample.summary <- data.frame()
 
 for (i in seq_len(dim(ffpe_vcfs)[1])) {
 
@@ -271,6 +276,16 @@ truth_n_real : {dim(filter(all.models.scores.labels, truth))[1]}
 truth_n_artifacts : {dim(filter(all.models.scores.labels, !truth))[1]}
 \n")
 	print(stdout)
+
+	summary <- data.frame(
+		sample_name = sample_name,
+		truth_sample_name = truth_sample_name,
+		snvs_evaluated = dim(all.models.scores.labels)[1],
+		truth_n_real = dim(filter(all.models.scores.labels, truth))[1],
+		truth_n_artifacts = dim(filter(all.models.scores.labels, !truth))[1]
+	)
+
+	all.sample.summary <- rbind(all.sample.summary, summary)
 
 	if (dim(filter(all.models.scores.labels, truth))[1] == 0) {
 		print(glue("\n{sample_name} could not be evaluated as it contains 0 positive entries for truth\n"))
@@ -393,7 +408,7 @@ truth_n_artifacts : {dim(filter(all.models.scores.labels, !truth))[1]}
 	qwrite(all.models.scores.labels, glue("{out_dir}/{sample_name}_dataset_labeled.tsv"))
 
 	# Mark the cutoff position for different values of fp-cut
-	print("Determining mobsnvf cutoff point across different values of fp-cut:")
+	print(glue("Determining mobsnvf cutoff point across different values of fp-cut:"))
 	for (cutoff_value in cutoffs) {
 		print(glue("\t{cutoff_value}"))
 		mobsnvf.cut.metrics <- all.models.scores.labels |> 
@@ -442,8 +457,14 @@ truth_n_artifacts : {dim(filter(all.models.scores.labels, !truth))[1]}
 
 print(glue("Finished making per sample ROC/PRC plots. Directory: {main.outdir}/roc-prc-plots/\n"))
 
+qwrite(all.sample.summary, glue("{main.outdir}/all_samples-summary.tsv"))
+print(glue("Saved summary to: {main.outdir}/all_samples-summary.tsv"))
+
 qwrite(all.samples.all.models.scores.labels, glue("{main.outdir}/all_samples_all_models_scores_labels.tsv"))
 print(glue("Saved scores and truth lables of all models to: {main.outdir}/all_samples_all_models_scores_labels.tsv"))
+
+
+
 # options(repr.plot.width = 7, repr.plot.height = 5)
 
 eval_df <- all.samples.all.models.scores.labels
@@ -466,8 +487,10 @@ print(glue("Saved ROC and PRC plots across all samples to {main.outdir}/roc-prc-
 qdraw(all.samples.roc.prc.plot, glue("{main.outdir}/roc-prc-plots/all_samples_all_roc_prc_plot.pdf"), width = 7, height = 5)
 
 
+
+
 ## Obtain AUROC and AUPRC from the evaluation results saved previously
-eval_res_path <- list.files(main.outdir, pattern = "_eval_res\\.rds", recursive = TRUE, full.names = TRUE)
+eval_res_path <- list.files(glue("{main.outdir}/roc-prc-plots"), pattern = "_eval_res\\.rds", recursive = TRUE, full.names = TRUE)
 
 ## Append AUROC and AUPRC for each model to a dataframe
 model.aucs <- data.frame()
@@ -501,6 +524,8 @@ for (path in eval_res_path) {
 ## Save the AUCs
 write.table(model.aucs, glue("{main.outdir}/aucs.tsv"), sep = "\t", row.names = FALSE)
 print(glue("Saved AUCs of each sample at {main.outdir}/aucs.tsv"))
+
+
 
 
 
@@ -539,6 +564,8 @@ write.table(lower.mobsnvf.auprc, glue("{main.outdir}/mobsnvf_lower_auprc.tsv"), 
 print(glue("\t\t- {main.outdir}/mobsnvf_lower_auroc.tsv"))
 print(glue("\t\t- {main.outdir}/mobsnvf_lower_auprc.tsv\n"))
 
+
+
 ## Make boxplots
 scale = 0.4; w = 14*scale; h = 12*scale
 options(repr.plot.width = w, repr.plot.height = h)
@@ -555,7 +582,7 @@ make_auc_boxplot <- function(
 	subtitle = NULL,
     grids = FALSE
 ){
-    options(repr.plot.width = width * scale, repr.plot.height = height * scale)
+    # options(repr.plot.width = width * scale, repr.plot.height = height * scale)
 
     title_insert <- c(
         "auroc" = "Area under Receiver Operating Characteristic Curve",
@@ -636,6 +663,8 @@ make_all_auc_boxplots <- function(results, scale = 0.4, text_scale = 0.5, w = 14
 	return(plots)
 }
 
+
+
 print(glue("Making AUROC and AUPRC boxplots"))
 # Call the plotting function
 all_auc_boxplots <- make_all_auc_boxplots(model.aucs, scale = 0.4, text_scale = 0.5, w = w, h = h, variant_callers = c("MuTect2"))
@@ -645,16 +674,17 @@ outdir = glue("{main.outdir}/box-plots")
 dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 
 ### AUROC
-show(all_auc_boxplots$auroc$MuTect2)
+# show(all_auc_boxplots$auroc$MuTect2)
 
 ##### Save AUROC plots
 qdraw(all_auc_boxplots$auroc$MuTect2, file = glue("{outdir}/auroc_mutect2_boxplot.pdf"), width = w, height = h)
 
 ### AUPRC
-show(all_auc_boxplots$auprc$MuTect2)
+# show(all_auc_boxplots$auprc$MuTect2)
 
 #### Save AUPRC plots
 qdraw(all_auc_boxplots$auprc$MuTect2, file = glue("{outdir}/auprc_mutect2_boxplot.pdf"), width = w, height = h)
 
 print(glue("Done.\nBox-Plots saved to {outdir}/"))
+
 
