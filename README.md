@@ -119,3 +119,6 @@ https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0127146
 
 https://www.ebi.ac.uk/ena/browser/view/PRJEB8754
 
+
+## Issues
+There are too many reads in amplicon sequencing. Some variants appear in both FF and FFPE but get called in one due to a lightly higher frequency. We have to find a way to adjust the variant calling so that the variants are more reliable for benchmarking.
