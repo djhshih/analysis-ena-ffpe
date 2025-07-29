@@ -32,10 +32,10 @@ def eval_mut_sig(vcf_path, reference_genome, outdir_root) -> None:
 
 
 def main() -> None:
-	vcf_paths = sorted(glob.glob("../../data/vcf/*/*.vcf"))
+	vcf_paths = sorted(glob.glob("../../data/vcf_ad_filtered/*/*.vcf"))
 	reference_genome_path= "../../data/ref/Homo_sapiens_assembly38.fasta"
 	reference_genome = pysam.FastaFile(reference_genome_path)
-	outdir_root = "../../evaluations/alt_flags_no_pon"
+	outdir_root = "../../evaluations/ad_filtered"
 
 	for vcf_path in vcf_paths:
 		eval_mut_sig(vcf_path, reference_genome, outdir_root)

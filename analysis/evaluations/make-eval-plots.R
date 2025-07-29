@@ -12,7 +12,9 @@ library(grid)
 library(hrbrthemes)
 library(viridis)
 
-main.outdir <- "../../evaluations/alt_flags_no_pon"
+main.outdir <- "../../evaluations/ad_filtered"
+ffpe_snvf.dir <- "../../ffpe-snvf"
+vcf.dir <- "../../data/vcf_ad_filtered"
 
 add_id <- function(d) {
 	d$snv <- paste(d$chrom, d$pos, d$ref, d$alt, sep="_")
@@ -186,7 +188,7 @@ make.roc.prc.plot <- function(roc.plot, prc.plot, auc_grob, snv_count = NULL, su
 
 lookup_table <- read.delim("../../annot/sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv")
 
-n <- c(1, 2, 4, 5, 6, 7, 8, 10, 12, 13)
+n <- c(1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13)
 cutoffs <- 5 * 10^(-n) |> sort(decreasing = TRUE)
 
 standard_chromosomes <- paste0("chr", c(1:22, "X", "Y"))
@@ -223,13 +225,13 @@ for (i in seq_len(dim(ffpe_vcfs)[1])) {
 
 	truth_sample_name <- glue("{truth_annot$sample_alias}_{truth_annot$run_accession}")
 
-    truths <- qread(glue("../../data/vcf/{truth_sample_name}/{truth_sample_name}.vcf")) |> select(chrom, pos, ref, alt) |> add_id()
+    truths <- qread(glue("{vcf.dir}/{truth_sample_name}/{truth_sample_name}.vcf")) |> select(chrom, pos, ref, alt) |> add_id()
 
 	## Read and add id (CHROM_POS_REF_ALT)
-	mobsnvf <- read.delim(glue("../../ffpe-snvf/mobsnvf/{sample_name}/{sample_name}.mobsnvf.snv")) |> add_id()
+	mobsnvf <- read.delim(glue("{ffpe_snvf.dir}/mobsnvf/{sample_name}/{sample_name}.mobsnvf.snv")) |> add_id()
 	
-	vafsnvf <- read.delim(glue("../../ffpe-snvf/vafsnvf/{sample_name}/{sample_name}.vafsnvf.snv")) |> add_id()
-	sobdetector <- read.delim(glue("../../ffpe-snvf/sobdetector/{sample_name}/{sample_name}.sobdetector.snv")) |> add_id() |>
+	vafsnvf <- read.delim(glue("{ffpe_snvf.dir}/vafsnvf/{sample_name}/{sample_name}.vafsnvf.snv")) |> add_id()
+	sobdetector <- read.delim(glue("{ffpe_snvf.dir}/sobdetector/{sample_name}/{sample_name}.sobdetector.snv")) |> add_id() |>
 		drop_na(artiStatus) |> 
 		mutate(SOB = as.numeric(SOB)) |> 
 		mutate(SOB = if_else(is.nan(SOB), 0, SOB))
@@ -237,9 +239,9 @@ for (i in seq_len(dim(ffpe_vcfs)[1])) {
 	# Higher score is signifies real mutation : VAFSNVF
     # Lower score signifies real mutation:  MOBSNVF, SOBDetector
 
-	microsec.exists <- file.exists(glue("../../ffpe-snvf/microsec/outputs/{sample_name}/{sample_name}.microsec.tsv"))
+	microsec.exists <- file.exists(glue("{ffpe_snvf.dir}/microsec/outputs/{sample_name}/{sample_name}.microsec.tsv"))
 	if (microsec.exists) {
-		microsec <- read.delim(glue("../../ffpe-snvf/microsec/outputs/{sample_name}/{sample_name}.microsec.tsv"))|> 
+		microsec <- read.delim(glue("{ffpe_snvf.dir}/microsec/outputs/{sample_name}/{sample_name}.microsec.tsv"))|> 
 			mutate(msec = ifelse((msec_filter_all == "Artifact suspicious"), 0, 1)) |>
 			rename(chrom = "Chr", pos = "Pos", ref = "Ref", alt = "Alt") |>
 			add_id()

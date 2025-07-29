@@ -3,7 +3,8 @@ import polars as pl
 import os
 import glob
 
-root_outdir = "../../evaluations"
+root_outdir = "../../evaluations/ad_filtered"
+vcf_dir = "../../data/vcf_ad_filtered"
 
 def import_formatted_vcf(vcf_path, sample_name, snv_only = True, standard_chr_only=True) -> pl.DataFrame:
 	
@@ -76,7 +77,7 @@ snv_mask = (
 )
 
 ## List paths to VCFs
-all_vcf_paths = glob.glob("../../data/vcf/*/*.vcf")
+all_vcf_paths = glob.glob(f"{vcf_dir}/*/*.vcf")
 
 ## Read in the sample annotation table
 lookup_table = pl.read_csv("../../annot/sample-info_matched-ff-ffpe_on-pat-id.tsv", separator="\t")
@@ -115,7 +116,7 @@ for path in ffpe_vcf_paths:
 	non_ct_snvs = ffpe_vcf.filter(snv_mask).filter(~c_to_t_mask).shape[0]
 
 
-	ground_truth = import_formatted_vcf(f"../../data/vcf/{truth_sample_id}/{truth_sample_id}.vcf", sample_name = truth_sample_id)
+	ground_truth = import_formatted_vcf(f"{vcf_dir}/{truth_sample_id}/{truth_sample_id}.vcf", sample_name = truth_sample_id)
 	
 	gt_total_mutations = ground_truth.shape[0]
 	gt_total_snvs = ground_truth.filter(snv_mask).shape[0]
