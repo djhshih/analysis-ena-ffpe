@@ -9,14 +9,14 @@ root_outdir=$3
 vcf_name=$(basename $vcf_path)
 sample_name=${vcf_name%%.*}
 
-ref=../../data/ref/Homo_sapiens_assembly38.fasta
+ref=../../../data/ref/Homo_sapiens_assembly38.fasta
 
 # vcf_indir=../../../data/vcf_ad_filtered
 # bam_indir=../../../data/bam
 outdir="${root_outdir}/sobdetector/${sample_name}"
 mkdir -p $outdir
 
-jar="../../../java/SOBDetector_v1.0.4.jar"
+jar="../../../../java/SOBDetector_v1.0.4.jar"
 echo $jar
 
 # bam=$(echo -n ${bam_indir}/${bam_path})

@@ -6,6 +6,8 @@ import numpy as np
 import os
 import glob
 
+outdir_root="../../ffpe-snvf/pass-n-orientation_ad_filtered/microsec/inputs"
+
 ## Create Mutation Info for MicroSEC
 
 def import_formatted_vcf(vcf_path) -> pl.DataFrame:
@@ -59,7 +61,7 @@ def import_formatted_vcf(vcf_path) -> pl.DataFrame:
 
 lookup_table = pl.read_csv("../../annot/sample-info_matched-ff-ffpe-only.tsv", separator="\t")
 
-vcf_paths = sorted(glob.glob("../../data/vcf_ad_filtered/*/*.vcf"))
+vcf_paths = sorted(glob.glob("../../data/vcf_pass-n-orientation_ad_filtered/*/*.vcf"))
 bam_paths = sorted(glob.glob(f"../../data/bam/*.bam"))
 
 lookup_table = lookup_table.with_columns([
@@ -85,7 +87,7 @@ for i in range(lookup_table_ffpe.shape[0]):
     
     mut_info = import_formatted_vcf(lookup_table_ffpe[i, "vcf_path"]).with_columns(pl.lit(sample_name).alias("Sample"))
     
-    outdir = "../../ffpe-snvf/microsec/inputs/mut_info"
+    outdir = f"{outdir_root}/mut_info"
     os.makedirs(outdir, exist_ok=True)
     
     for j in range(mut_info.shape[0]):
@@ -136,7 +138,7 @@ for i in range(lookup_table_ffpe.shape[0]):
 
 ### Create Sample Info for MicroSEC
 
-mut_info_paths = sorted(glob.glob(f"../../ffpe-snvf/microsec/inputs/mut_info/*.microsec.mut-info.tsv"))
+mut_info_paths = sorted(glob.glob(f"{outdir_root}/mut_info/*.microsec.mut-info.tsv"))
 ref_path = '../../data/ref/Homo_sapiens_assembly38.fasta'
 mut_info_suffix = ".microsec.mut-info.tsv"
 
@@ -161,6 +163,4 @@ for i in range(len(mut_info_paths)):
     sample_info.loc[i, "optional: reference genome fasta file"] = ref_path
     #sample_info.loc[i, "optional: simple repeat region bed file"] = np.nan
 
-
-sample_info.to_csv("../../ffpe-snvf/microsec/inputs/microsec.sample_info.tsv", sep="\t", index=False, header=False)
-
+sample_info.to_csv(f"{outdir_root}/microsec.sample_info.tsv", sep="\t", index=False, header=False)
