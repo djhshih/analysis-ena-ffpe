@@ -18,6 +18,8 @@ for vcf in ../../data/vcf_filtermutectcalls_obf/*/*.vcf; do
 
     bcftools view -i 'FILTER="PASS" || FILTER="orientation"' -o "${outdir}/${sample_name}.vcf" $vcf
 
+    gatk IndexFeatureFile -I "${outdir}/${sample_name}.vcf"
+
     # bcftools view -i 'FMT/AD[0:0] + FMT/AD[0:1] >= 10 && FMT/AD[0:1]'
 
 done

@@ -18,6 +18,8 @@ for vcf in ../../data/vcf_pass-n-orientation/*/*.vcf; do
 
     bcftools view -i 'FMT/AD[0:0] + FMT/AD[0:1] >= 10 && FMT/AD[0:1] >= 3' -o "${outdir}/${sample_name}.vcf" $vcf
 
+    gatk IndexFeatureFile -I "${outdir}/${sample_name}.vcf"
+
     # bcftools view -i 'FMT/AD[0:0] + FMT/AD[0:1] >= 10 && FMT/AD[0:1]'  'FILTER="PASS"'
 
 done
