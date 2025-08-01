@@ -121,10 +121,20 @@ https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0127146
 https://www.ebi.ac.uk/ena/browser/view/PRJEB8754
 
 ### SRP044740
-13 FFPE breast tumor samples and 13 corresponding frozen samples
+Study Title: NA
+
+exomes of 13 FFPE breast tumor samples and 13 corresponding frozen samples
 
 https://www.ebi.ac.uk/ena/browser/view/SRP044740
 
+
+### PRJEB44073
+Study Title: The Mutational Concordance of Fixed Formalin Paraffin Embedded and Fresh Frozen Gastro-oesophageal Tumours Using Whole Exome Sequencing
+https://www.mdpi.com/2077-0383/10/2/215
+
+https://www.ebi.ac.uk/ena/browser/view/PRJEB44073
+
+WXS of 16 matched fresh frozen and FFPE gastro-oesophageal tumours
 
 
 ## Variant Calling Decisions
@@ -141,6 +151,8 @@ https://gatk.broadinstitute.org/hc/en-us/community/posts/12450796994459-Asking-f
 
 https://www.reddit.com/r/bioinformatics/comments/a71z2f/running_mutect2_with_dontusesoftclippedbases/
 
+
+TO Do: Add more information about what changes are made to the variant calling workflow. What is skipped. What is added. etc.
 
 ## Issues
 There are too many reads in amplicon sequencing. Some variants appear in both FF and FFPE but get called in one due to a lightly higher frequency. We have to find a way to adjust the variant calling so that the variants are more reliable for benchmarking.

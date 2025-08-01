@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -euo pipefail
+
+bam_fname=$1
+vcf_fname=$2
+sample_name=${vcf_fname%%.*}
+
+ref=../../../data/ref/Homo_sapiens_assembly38.fasta
+
+vcf_indir=../../../data/vcf_ad_filtered
+bam_indir=../../../data/bam
+outdir="../../../ffpe-snvf/vafsnvf/$sample_name"
+
+mkdir -p $outdir
+
+bam=$(echo -n ${bam_indir}/${bam_fname})
+if [[ ! -f $bam ]]; then
+	echo "${bam_indir}/${bam_fname} not found" >&2
+	exit 2
+fi
+
+vcf=$(echo -n ${vcf_indir}/${sample_name}/${vcf_fname})
+if [[ ! -f $vcf ]]; then
+	vcf=$(echo -n ${vcf_indir}/${sample_name}/${vcf_fname}.gz)
+	if [[ ! -f $vcf ]]; then
+		echo "${vcf_indir}/${sample_name}/${vcf_fname} not found." >&2
+		exit 2
+	fi
+fi
+
+echo "inputs:" >&2
+echo "  $bam" >&2
+echo "  $vcf" >&2
+
+hts-vafsnvf C T $bam $vcf $outdir/${sample_name}.vafsnvf.snv
+
+echo "Finished FFPE SNVF Filtering"
+echo -e "\tOutput saved to: $outdir/${sample_name}.mobsnvf.snv"
