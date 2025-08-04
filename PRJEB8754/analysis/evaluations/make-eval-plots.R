@@ -12,9 +12,11 @@ library(grid)
 library(hrbrthemes)
 library(viridis)
 
-main.outdir <- "../../evaluations/ad_filtered"
-ffpe_snvf.dir <- "../../ffpe-snvf"
-vcf.dir <- "../../data/vcf_ad_filtered"
+
+main.outdir <- "../../evaluations/pass-n-orientation_ad_filtered"
+ffpe_snvf.dir <- "../../ffpe-snvf/vcf_pass-n-orientation_ad_filtered"
+vcf.dir <- "../../data/vcf_pass-n-orientation_ad_filtered"
+
 
 add_id <- function(d) {
 	d$snv <- paste(d$chrom, d$pos, d$ref, d$alt, sep="_")
@@ -186,6 +188,7 @@ make.roc.prc.plot <- function(roc.plot, prc.plot, auc_grob, snv_count = NULL, su
 	return(combined_plot)
 }
 
+
 lookup_table <- read.delim("../../annot/sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv")
 
 n <- c(1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 13)
@@ -199,6 +202,8 @@ ffpe_vcfs <- lookup_table |>
 
 all.samples.all.models.scores.labels <- data.frame()
 all.sample.summary <- data.frame()
+
+
 
 for (i in seq_len(dim(ffpe_vcfs)[1])) {
 
@@ -217,6 +222,7 @@ for (i in seq_len(dim(ffpe_vcfs)[1])) {
 	out_dir <- glue("{main.outdir}/roc-prc-plots/{sample_name}/")
 	dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 	
+	
 
 	truth_annot <- lookup_table |> 
 		filter(inferred_id == patient_id) |>
@@ -224,9 +230,14 @@ for (i in seq_len(dim(ffpe_vcfs)[1])) {
 		filter(preservation == "Frozen")
 
 	truth_sample_name <- glue("{truth_annot$sample_alias}_{truth_annot$run_accession}")
+	
+    # truths <- qread(glue("{vcf.dir}/{truth_sample_name}/{truth_sample_name}.vcf")) |> select(chrom, pos, ref, alt) |> add_id()
 
-    truths <- qread(glue("{vcf.dir}/{truth_sample_name}/{truth_sample_name}.vcf")) |> select(chrom, pos, ref, alt) |> add_id()
-
+	truths <- read.delim(glue("{vcf.dir}/{truth_sample_name}/{truth_sample_name}.vcf"), comment.char = "#", header = FALSE) |> 
+		select(V1, V2, V4, V5) |> 
+		rename(chrom = V1, pos = V2, ref = V4, alt = V5) |>
+		add_id()
+	
 	## Read and add id (CHROM_POS_REF_ALT)
 	mobsnvf <- read.delim(glue("{ffpe_snvf.dir}/mobsnvf/{sample_name}/{sample_name}.mobsnvf.snv")) |> add_id()
 	
@@ -236,8 +247,15 @@ for (i in seq_len(dim(ffpe_vcfs)[1])) {
 		mutate(SOB = as.numeric(SOB)) |> 
 		mutate(SOB = if_else(is.nan(SOB), 0, SOB))
 
+	gatk.obmm <- read.delim(glue("{vcf.dir}/{sample_name}/{sample_name}.vcf"), comment.char = "#", header = FALSE) |> 
+		select(V1, V2, V4, V5, V7) |> 
+		rename(chrom = V1, pos = V2, ref = V4, alt = V5, filter = V7) |>
+		add_id() |>
+		mutate(obmm = if_else(filter == "PASS", 1, 0))
+
 	# Higher score is signifies real mutation : VAFSNVF
     # Lower score signifies real mutation:  MOBSNVF, SOBDetector
+	# We flip scores for MOBSNVF and SOBDetector to make higher score signify a real muatation
 
 	microsec.exists <- file.exists(glue("{ffpe_snvf.dir}/microsec/outputs/{sample_name}/{sample_name}.microsec.tsv"))
 	if (microsec.exists) {
@@ -252,7 +270,9 @@ for (i in seq_len(dim(ffpe_vcfs)[1])) {
 		select(chrom, pos, ref, alt, snv, FOBP) |>
 		drop_na() |>
 		left_join(select(vafsnvf, snv, VAFF), by="snv") |>
-		left_join(select(sobdetector, snv, SOB), by="snv") 
+		left_join(select(sobdetector, snv, SOB), by="snv") |>
+		left_join(select(gatk.obmm, snv, obmm), by="snv") |>
+		add_id()
 		# |>
 		# drop_na()
 		
@@ -294,11 +314,13 @@ truth_n_artifacts : {dim(filter(all.models.scores.labels, !truth))[1]}
 		next
 	}
 
-	all.model.scores <- join_scores(all.models.scores.labels$FOBP, all.models.scores.labels$VAFF, all.models.scores.labels$SOB, all.models.scores.labels$msec) # 
-	all.model.labels <- join_labels(all.models.scores.labels$truth, all.models.scores.labels$truth, all.models.scores.labels$truth, all.models.scores.labels$truth) # 
-	all.model.names <- c("mobsnvf", "vafsnvf", "sobdetector", "microsec") # 
+	all.model.scores <- join_scores(all.models.scores.labels$FOBP, all.models.scores.labels$VAFF, all.models.scores.labels$SOB, all.models.scores.labels$msec, all.models.scores.labels$obmm) # 
+	all.model.labels <- join_labels(all.models.scores.labels$truth, all.models.scores.labels$truth, all.models.scores.labels$truth, all.models.scores.labels$truth, all.models.scores.labels$truth) # 
+	all.model.names <- c("mobsnvf", "vafsnvf", "sobdetector", "microsec", "gatk_obmm") # 
 
 	all.model.eval <- evalmod(mmdata(all.model.scores, all.model.labels, all.model.names))
+
+
 
 	# Get AUCs to include in plot
 	all.model.aucs <- auc(all.model.eval)
@@ -308,12 +330,14 @@ truth_n_artifacts : {dim(filter(all.models.scores.labels, !truth))[1]}
 	auroc.vafsnvf <- all.model.aucs |> filter(modnames == "vafsnvf" & curvetypes == "ROC") |> pull(aucs)
 	auroc.sobdetector <- all.model.aucs |> filter(modnames == "sobdetector" & curvetypes == "ROC") |> pull(aucs)
 	auroc.microsec <- all.model.aucs |> filter(modnames == "microsec" & curvetypes == "ROC") |> pull(aucs)
+	auroc.gatk.obmm <- all.model.aucs |> filter(modnames == "gatk_obmm" & curvetypes == "ROC") |> pull(aucs)
 
 	## AUPRC for each model
 	auprc.mobsnvf <- all.model.aucs |> filter(modnames == "mobsnvf" & curvetypes == "PRC") |> pull(aucs)
 	auprc.vafsnvf <- all.model.aucs |> filter(modnames == "vafsnvf" & curvetypes == "PRC") |> pull(aucs)
 	auprc.sobdetector <- all.model.aucs |> filter(modnames == "sobdetector" & curvetypes == "PRC") |> pull(aucs)
 	auprc.microsec <- all.model.aucs |> filter(modnames == "microsec" & curvetypes == "PRC") |> pull(aucs)
+	auprc.gatk.obmm <- all.model.aucs |> filter(modnames == "gatk_obmm" & curvetypes == "PRC") |> pull(aucs)
 
 
 	# Make AUCROC and AUPRC texts to include in the plots
@@ -322,18 +346,18 @@ truth_n_artifacts : {dim(filter(all.models.scores.labels, !truth))[1]}
 	microsec={round(auroc.microsec, 3)}
 	auc_text <- glue(
 		"
-		
 		AUROC:
 		mobsnvf={round(auroc.mobsnvf, 3)}
 		vafsnvf={round(auroc.vafsnvf, 3)}
 		sobdetector={round(auroc.sobdetector, 3)}
 		microsec={round(auroc.microsec, 3)}
+		gatk-obmm={round(auroc.gatk.obmm, 3)}
 
 		AUPRC:
 		mobsnvf={round(auprc.mobsnvf, 3)}
 		vafsnvf={round(auprc.vafsnvf, 3)}
 		sobdetector={round(auprc.sobdetector, 3)}
-		microsec={round(auprc.microsec, 3)}"
+		gatk-obmm={round(auprc.gatk.obmm, 3)}"
 	)
 
 	# Make plot text
@@ -389,18 +413,20 @@ truth_n_artifacts : {dim(filter(all.models.scores.labels, !truth))[1]}
     p.mobsnvf <- with(all.models.scores.labels, evalmod(scores = FOBP, labels = truth))
 	p.sobdetector <- with(all.models.scores.labels, evalmod(scores = SOB, labels = truth))
 	p.microsec <- with(all.models.scores.labels, evalmod(scores = msec, labels = truth))
+	p.gatk.obmm <- with(all.models.scores.labels, evalmod(scores = obmm, labels = truth))
 
     res <- list(
 			mobsnvf = p.mobsnvf,
 			vafsnvf = p.vafsnvf,
 			sobdetector = p.sobdetector,
 			microsec = p.microsec,
+			gatk = p.gatk.obmm,
 			all_models = all.model.eval
 		)
 	
 	# For debugging in notebook
 	options(repr.plot.width = 7, repr.plot.height = 5)
-	
+
 	# Save plot and res
     qdraw(all.model.roc.prc.plot, glue("{out_dir}/{sample_name}_roc_prc.pdf"), width = 7, height = 5)
 
@@ -451,11 +477,12 @@ truth_n_artifacts : {dim(filter(all.models.scores.labels, !truth))[1]}
 		)
 	}
 	print(glue("Done\n"))
-
+	
 	all.models.scores.labels <- all.models.scores.labels |> mutate(variant_caller = variant_caller, sample_name = sample_name)
 	all.samples.all.models.scores.labels <- rbind(all.samples.all.models.scores.labels, all.models.scores.labels)
 	
 }
+
 
 print(glue("Finished making per sample ROC/PRC plots. Directory: {main.outdir}/roc-prc-plots/\n"))
 
@@ -465,13 +492,11 @@ print(glue("Saved summary to: {main.outdir}/all_samples-summary.tsv"))
 qwrite(all.samples.all.models.scores.labels, glue("{main.outdir}/all_samples_all_models_scores_labels.tsv"))
 print(glue("Saved scores and truth lables of all models to: {main.outdir}/all_samples_all_models_scores_labels.tsv"))
 
-
-
 # options(repr.plot.width = 7, repr.plot.height = 5)
 
 eval_df <- all.samples.all.models.scores.labels
-all.samples.eval <- make.multimodel.eval.object(eval_df, score_columns = c("FOBP", "VAFF", "SOB", "msec"), names = c("mobsnvf", "vafsnvf", "sobdetector", "microsec"))
-plot.auc.text <- make.plot.auc.text(all.samples.eval, model.names = c("mobsnvf", "vafsnvf", "sobdetector", "microsec"))$text.plot.object
+all.samples.eval <- make.multimodel.eval.object(eval_df, score_columns = c("FOBP", "VAFF", "SOB", "msec", "obmm"), names = c("mobsnvf", "vafsnvf", "sobdetector", "microsec", "gatk-obmm"))
+plot.auc.text <- make.plot.auc.text(all.samples.eval, model.names = c("mobsnvf", "vafsnvf", "sobdetector", "microsec", "gatk-obmm"))$text.plot.object
 all.model.roc.plot <- autoplot(all.samples.eval, "ROC")
 all.model.prc.plot <- autoplot(all.samples.eval, "PRC")
 
@@ -489,8 +514,6 @@ print(glue("Saved ROC and PRC plots across all samples to {main.outdir}/roc-prc-
 qdraw(all.samples.roc.prc.plot, glue("{main.outdir}/roc-prc-plots/all_samples_all_roc_prc_plot.pdf"), width = 7, height = 5)
 
 
-
-
 ## Obtain AUROC and AUPRC from the evaluation results saved previously
 eval_res_path <- list.files(glue("{main.outdir}/roc-prc-plots"), pattern = "_eval_res\\.rds", recursive = TRUE, full.names = TRUE)
 
@@ -499,7 +522,7 @@ model.aucs <- data.frame()
 
 for (path in eval_res_path) {
 	parts <- stringr::str_split_1(path, "/")
-	sample_id <- sub("_eval_res.rds", "", parts[5])
+	sample_id <- sub("_eval_res.rds", "", parts[6])
 	variant_caller <- "MuTect2"
 
 	eval_res <- readRDS(path)
@@ -565,6 +588,8 @@ write.table(lower.mobsnvf.auroc, glue("{main.outdir}/mobsnvf_lower_auroc.tsv"), 
 write.table(lower.mobsnvf.auprc, glue("{main.outdir}/mobsnvf_lower_auprc.tsv"), sep = "\t", row.names = FALSE)
 print(glue("\t\t- {main.outdir}/mobsnvf_lower_auroc.tsv"))
 print(glue("\t\t- {main.outdir}/mobsnvf_lower_auprc.tsv\n"))
+
+
 
 
 
@@ -635,6 +660,8 @@ make_auc_boxplot <- function(
     return(auc_model_boxplot)
 }
 
+
+
 ### Function to make AUPRC and AUROC plots from multiple variant callers using the make_auc_boxplot function. 
 ### We only use mutect2 in this particular case case
 make_all_auc_boxplots <- function(results, scale = 0.4, text_scale = 0.5, w = 14*scale, h = 12*scale, 
@@ -667,6 +694,8 @@ make_all_auc_boxplots <- function(results, scale = 0.4, text_scale = 0.5, w = 14
 
 
 
+
+
 print(glue("Making AUROC and AUPRC boxplots"))
 # Call the plotting function
 all_auc_boxplots <- make_all_auc_boxplots(model.aucs, scale = 0.4, text_scale = 0.5, w = w, h = h, variant_callers = c("MuTect2"))
@@ -688,5 +717,4 @@ qdraw(all_auc_boxplots$auroc$MuTect2, file = glue("{outdir}/auroc_mutect2_boxplo
 qdraw(all_auc_boxplots$auprc$MuTect2, file = glue("{outdir}/auprc_mutect2_boxplot.pdf"), width = w, height = h)
 
 print(glue("Done.\nBox-Plots saved to {outdir}/"))
-
 
