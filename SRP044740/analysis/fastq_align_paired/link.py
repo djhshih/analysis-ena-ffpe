@@ -12,4 +12,14 @@ os.makedirs(target_dir, exist_ok=True)
 
 for path in bam_bai_paths:
     base = os.path.basename(path)
-    os.link(path, f"{target_dir}/{base}")
+    
+    target_path = f"{target_dir}/{base}"
+    
+    if os.path.exists(target_path):
+        print(f"'{base}' already exists at '{target_dir}'\n\tSKIPPING...")
+        continue
+    
+    os.link(path, target_path)
+    print(f"Created hard link for: {base}, \n\tat {target_dir}\n")
+
+print("Done.")
