@@ -25,7 +25,7 @@ conda activate ena-ffpe
 ls inputs/* > dlazy_samples.txt
 djobs dlazy_samples.txt cromwell run ../../wdl/fastq_align_paired.wdl -i
 
-pdlazy job -j $(($SLURM_NTASKS))
+pdlazy job -j $(($SLURM_NTASKS/2))
 
 # print the end time
 date

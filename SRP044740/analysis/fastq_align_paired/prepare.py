@@ -13,7 +13,7 @@ ref_root = os.path.abspath('../../data/ref')
 ref_fname = 'Homo_sapiens_assembly38.fasta'
 
 infname = '../../annot/sample-info_stage1.tsv'
-rg_root = os.path.abspath('../../data/rg')
+rg_root = os.path.abspath('../../data/rg/rg_corrected')
 fq_root = os.path.abspath('../../data/fq')
 out_dir = 'inputs'
 
