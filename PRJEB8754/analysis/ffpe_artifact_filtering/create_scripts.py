@@ -22,4 +22,6 @@ for vcf_path in vcf_paths:
         
         with open(filename, "w") as f:
             f.write(content)
+            
+        print(f"Created {model} filtering script for {vcf_path}")
 
