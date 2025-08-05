@@ -46,7 +46,7 @@ base = {
 	'bam_variant_mutect2.variants_for_contamination':  os.path.join(vcf_path, 'small_exac_common_3.hg38.vcf.gz'),
 	'bam_variant_mutect2.variants_for_contamination_idx': os.path.join(vcf_path, 'small_exac_common_3.hg38.vcf.gz.tbi'),
 	'bam_variant_mutect2.realignment_index_bundle': os.path.join(bundle_path, 'Homo_sapiens_assembly38.index_bundle'),
-	# 'bam_variant_mutect2.m2_extra_args': '',
+	'bam_variant_mutect2.realignment_extra_args': '--dont-skip-filtered-variants',
 	'bam_variant_mutect2.scatter_count': 8,
 	'bam_variant_mutect2.gatk_docker': 'broadinstitute/gatk:4.6.2.0',
 	'bam_variant_mutect2.gatk_override': gatk_path,
