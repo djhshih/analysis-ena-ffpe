@@ -6,12 +6,8 @@ bam_path=$1
 vcf_path=$2
 root_outdir=$3
 
-echo $root_outdir
-
 vcf_name=$(basename $vcf_path)
 sample_name=${vcf_name%%.*}
-echo $vcf_name
-echo $sample_name
 
 ref=../../../data/ref/Homo_sapiens_assembly38.fasta
 

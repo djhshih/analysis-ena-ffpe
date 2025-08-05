@@ -1,4 +1,3 @@
 #!/bin/bash
 
-cd script
-dlazy .
+cd script && dlazy .

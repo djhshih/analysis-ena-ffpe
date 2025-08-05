@@ -1,8 +1,8 @@
 import os
 import glob
 
-vcf_paths = glob.glob("../../data/vcf_pass-n-orientation_ad_filtered/*/*.vcf")
-filtered_outdir = "../../ffpe-snvf/vcf_pass-n-orientation_ad_filtered"
+vcf_paths = glob.glob("../../data/vcf_pass-orient-pos-sb_ad_filtered/*/*.vcf")
+filtered_outdir = "../../ffpe-snvf/vcf_pass-orient-pos-sb_ad_filtered"
 
 models = ["mobsnvf", "vafsnvf", "sobdetector"]
 
