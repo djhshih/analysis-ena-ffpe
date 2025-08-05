@@ -13,9 +13,11 @@ library(hrbrthemes)
 library(viridis)
 
 
-main.outdir <- "../../evaluations/pass-n-orientation_ad_filtered"
-ffpe_snvf.dir <- "../../ffpe-snvf/vcf_pass-n-orientation_ad_filtered"
-vcf.dir <- "../../data/vcf_pass-n-orientation_ad_filtered"
+
+main.outdir <- "../../evaluations/vcf_pass-orient-pos-sb_ad_filtered"
+ffpe_snvf.dir <- "../../ffpe-snvf/vcf_pass-orient-pos-sb_ad_filtered"
+vcf.dir <- "../../data/vcf_pass-orient-pos-sb_ad_filtered"
+
 
 
 add_id <- function(d) {
@@ -251,7 +253,7 @@ for (i in seq_len(dim(ffpe_vcfs)[1])) {
 		select(V1, V2, V4, V5, V7) |> 
 		rename(chrom = V1, pos = V2, ref = V4, alt = V5, filter = V7) |>
 		add_id() |>
-		mutate(obmm = if_else(filter == "PASS", 1, 0))
+		mutate(obmm = if_else(str_detect(filter, "orientation"), 0, 1))
 
 	# Higher score is signifies real mutation : VAFSNVF
     # Lower score signifies real mutation:  MOBSNVF, SOBDetector
@@ -484,6 +486,7 @@ truth_n_artifacts : {dim(filter(all.models.scores.labels, !truth))[1]}
 }
 
 
+
 print(glue("Finished making per sample ROC/PRC plots. Directory: {main.outdir}/roc-prc-plots/\n"))
 
 qwrite(all.sample.summary, glue("{main.outdir}/all_samples-summary.tsv"))
@@ -512,6 +515,11 @@ all.samples.roc.prc.plot <- make.roc.prc.plot(
 # all.samples.roc.prc.plot
 print(glue("Saved ROC and PRC plots across all samples to {main.outdir}/roc-prc-plots/all_samples_all_roc_prc_plot.pdf\n"))
 qdraw(all.samples.roc.prc.plot, glue("{main.outdir}/roc-prc-plots/all_samples_all_roc_prc_plot.pdf"), width = 7, height = 5)
+
+
+
+all.samples.roc.prc.plot
+
 
 
 ## Obtain AUROC and AUPRC from the evaluation results saved previously
@@ -694,8 +702,6 @@ make_all_auc_boxplots <- function(results, scale = 0.4, text_scale = 0.5, w = 14
 
 
 
-
-
 print(glue("Making AUROC and AUPRC boxplots"))
 # Call the plotting function
 all_auc_boxplots <- make_all_auc_boxplots(model.aucs, scale = 0.4, text_scale = 0.5, w = w, h = h, variant_callers = c("MuTect2"))
@@ -717,4 +723,7 @@ qdraw(all_auc_boxplots$auroc$MuTect2, file = glue("{outdir}/auroc_mutect2_boxplo
 qdraw(all_auc_boxplots$auprc$MuTect2, file = glue("{outdir}/auprc_mutect2_boxplot.pdf"), width = w, height = h)
 
 print(glue("Done.\nBox-Plots saved to {outdir}/"))
+
+
+
 
