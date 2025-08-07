@@ -3,8 +3,9 @@ import polars as pl
 import os
 import glob
 
-root_outdir = "../../evaluations/ad_filtered"
-vcf_dir = "../../data/vcf_ad_filtered"
+root_outdir = "../../evaluations/vcf_pass-orient-pos-sb_ad_filtered"
+vcf_dir = "../../data/vcf_pass-orient-pos-sb_ad_filtered"
+ffpe_snvf_dir="../../ffpe-snvf/vcf_pass-orient-pos-sb_ad_filtered"
 
 def import_formatted_vcf(vcf_path, sample_name, snv_only = True, standard_chr_only=True) -> pl.DataFrame:
 	
@@ -163,6 +164,49 @@ for path in ffpe_vcf_paths:
 	   	.join(ground_truth, on=["chrom", "pos", "ref" , "alt"], how = "anti")
 	).shape[0]
 
+	# Ground truth SNVs in FFPE and not in FFPE
+	gt_snvs_in_ffpe = (
+		ground_truth
+		.filter(snv_mask)
+		.join(ffpe_vcf, on=["chrom", "pos", "ref", "alt"], how="semi")
+	).shape[0]
+
+	gt_snvs_not_in_ffpe = (
+		ground_truth
+		.filter(snv_mask)
+		.join(ffpe_vcf, on=["chrom", "pos", "ref", "alt"], how="anti")
+	).shape[0]
+
+	# Ground truth C>T SNVs in FFPE and not in FFPE
+	gt_ct_snvs_in_ffpe = (
+		ground_truth
+		.filter(snv_mask)
+		.filter(c_to_t_mask)
+		.join(ffpe_vcf, on=["chrom", "pos", "ref", "alt"], how="semi")
+	).shape[0]
+
+	gt_ct_snvs_not_in_ffpe = (
+		ground_truth
+		.filter(snv_mask)
+		.filter(c_to_t_mask)
+		.join(ffpe_vcf, on=["chrom", "pos", "ref", "alt"], how="anti")
+	).shape[0]
+
+	# Ground truth non-C>T SNVs in FFPE and not in FFPE
+	gt_nct_snvs_in_ffpe = (
+		ground_truth
+		.filter(snv_mask)
+		.filter(~c_to_t_mask)
+		.join(ffpe_vcf, on=["chrom", "pos", "ref", "alt"], how="semi")
+	).shape[0]
+
+	gt_nct_snvs_not_in_ffpe = (
+		ground_truth
+		.filter(snv_mask)
+		.filter(~c_to_t_mask)
+		.join(ffpe_vcf, on=["chrom", "pos", "ref", "alt"], how="anti")
+	).shape[0]
+
 	metrics.append({
 		"ffpe_sample_id": sample_id,
   		"variant_caller": variant_caller,
@@ -182,6 +226,12 @@ for path in ffpe_vcf_paths:
 		"ffpe_ct_snvs_not_in_gt" : ffpe_ct_snvs_not_in_gt,
 		"ffpe_non_ct_snvs_in_gt" : ffpe_nct_snvs_in_gt,
 		"ffpe_non_ct_snvs_not_in_gt" : ffpe_nct_snvs_not_in_gt,
+		"gt_snvs_in_ffpe": gt_snvs_in_ffpe,
+		"gt_snvs_not_in_ffpe": gt_snvs_not_in_ffpe,
+		"gt_ct_snvs_in_ffpe": gt_ct_snvs_in_ffpe,
+		"gt_ct_snvs_not_in_ffpe": gt_ct_snvs_not_in_ffpe,
+		"gt_non_ct_snvs_in_ffpe": gt_nct_snvs_in_ffpe,
+		"gt_non_ct_snvs_not_in_ffpe": gt_nct_snvs_not_in_ffpe,
 	})
 
 metrics_df = pl.DataFrame(metrics).sort(["ffpe_sample_id"])
@@ -200,10 +250,6 @@ def variant_count(variants) -> tuple:
 
 	return all_mutations, snvs_only, non_snvs, c_to_t, non_c_to_t
 
-vafsnvf_res_paths = glob.glob("../../ffpe-snvf/mobsnvf/*/*.mobsnvf.snv")
-vafsnvf_res_paths = glob.glob("../../ffpe-snvf/vafsnvf/*/*.vafsnvf.snv")
-sobdetector_res_paths = glob.glob("../../ffpe-snvf/sobdetector/*/*.sobdetector.snv")
-
 counts = []
 
 for path in ffpe_vcf_paths:
@@ -217,9 +263,9 @@ for path in ffpe_vcf_paths:
 	ct_snvs = ffpe_vcf.filter(snv_mask).filter(c_to_t_mask).shape[0]
 	non_ct_snvs = ffpe_vcf.filter(snv_mask).filter(~c_to_t_mask).shape[0]
 
-	mobsnvf_vcf = import_formatted_vcf(f"../../ffpe-snvf/mobsnvf/{sample_id}/{sample_id}.mobsnvf.snv", sample_id, snv_only=False, standard_chr_only=True)
-	vafsnvf_vcf = import_formatted_vcf(f"../../ffpe-snvf/vafsnvf/{sample_id}/{sample_id}.vafsnvf.snv", sample_id, snv_only=False, standard_chr_only=True)
-	sobdetector_vcf = import_formatted_vcf(f"../../ffpe-snvf/sobdetector/{sample_id}/{sample_id}.sobdetector.snv", sample_id, snv_only=False, standard_chr_only=True)
+	mobsnvf_vcf = import_formatted_vcf(f"{ffpe_snvf_dir}/mobsnvf/{sample_id}/{sample_id}.mobsnvf.snv", sample_id, snv_only=False, standard_chr_only=True)
+	vafsnvf_vcf = import_formatted_vcf(f"{ffpe_snvf_dir}/vafsnvf/{sample_id}/{sample_id}.vafsnvf.snv", sample_id, snv_only=False, standard_chr_only=True)
+	sobdetector_vcf = import_formatted_vcf(f"{ffpe_snvf_dir}/sobdetector/{sample_id}/{sample_id}.sobdetector.snv", sample_id, snv_only=False, standard_chr_only=True)
 
 	mobsnvf_mutations, mobsnvf_snvs, mobsnvf_non_snvs, mobsnvf_c_to_t, mobsnvf_non_c_to_t =  variant_count(mobsnvf_vcf)
 	vafsnvf_mutations, vafsnvf_snvs, vafsnvf_non_snvs, vafsnvf_c_to_t, vafsnvf_non_c_to_t =  variant_count(vafsnvf_vcf)
