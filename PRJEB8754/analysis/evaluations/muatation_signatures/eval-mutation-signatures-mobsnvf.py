@@ -4,7 +4,7 @@ import sys
 import glob
 import pysam
 
-module_path = os.path.abspath("../../python")
+module_path = os.path.abspath("../../../../python")
 sys.path.append(module_path)
 
 import mutation_signatures as ms
@@ -32,10 +32,10 @@ def eval_mut_sig(vcf_path, reference_genome, outdir_root) -> None:
 
 
 def main() -> None:
-	vcf_paths = sorted(glob.glob("../../ffpe-snvf/mobsnvf/*/*.mobsnvf.filtered.snv"))
-	reference_genome_path= "../../data/ref/Homo_sapiens_assembly38.fasta"
+	vcf_paths = sorted(glob.glob("../../../ffpe-snvf/vcf_pass-orient-pos-sb_ad_filtered/mobsnvf/*/*.mobsnvf.filtered.snv"))
+	reference_genome_path= "../../../data/ref/Homo_sapiens_assembly38.fasta"
 	reference_genome = pysam.FastaFile(reference_genome_path)
-	outdir_root = "../../evaluations/ad_filtered"
+	outdir_root = "../../../evaluations/vcf_pass-orient-pos-sb_ad_filtered"
 
 	for vcf_path in vcf_paths:
 		eval_mut_sig(vcf_path, reference_genome, outdir_root)
