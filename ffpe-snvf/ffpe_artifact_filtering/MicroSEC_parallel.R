@@ -68,7 +68,7 @@ library(stringr)
 library(Rsamtools)
 library(BiocGenerics)
 library(Biostrings)
-# library(doParallel)
+library(doParallel)
 
 # set arguments
 args <- commandArgs(trailingOnly = T)
@@ -79,6 +79,8 @@ progress_bar <- args[3]
 
 setwd(wd)
 
+root_outdir = "."
+
 # load sample information tsv file
 sample_info <- read.csv(sample_list,
     header = FALSE,
@@ -86,7 +88,10 @@ sample_info <- read.csv(sample_list,
     sep = "\t"
 )
 
-# registerDoParallel(cores=min(4, dim(sample_info)[1]))
+cores <- as.integer(Sys.getenv("SLURM_NTASKS", unset=2))
+registerDoParallel(cores=min(cores, dim(sample_info)[1]))
+
+message(sprintf("SLURM cores: %s", cores))
 
 # initialize
 msec <- NULL
@@ -94,7 +99,11 @@ homology_search <- NULL
 mut_depth <- NULL
 
 
-for (sample in seq_len(nrow(sample_info))) {
+foreach (
+  sample = seq_len(nrow(sample_info)),
+  .combine = "rbind",
+  .packages = c("MicroSEC", "dplyr", "readr", "Rsamtools", "BiocGenerics", "Biostrings")
+) %dopar%  {
 
     sample_name <- sample_info[sample, 1]
     mutation_file <- sample_info[sample, 2]
@@ -126,9 +135,14 @@ for (sample in seq_len(nrow(sample_info))) {
         }
     }
 
-    slim_bam_dir <- paste0("../../microsec/inputs/slim-bam/", sample_name)
+    run_or_stop <- function(cmd) {
+        ret <- system(cmd)
+        if (ret != 0) stop(paste("Command failed:", cmd))
+    }
+
+    slim_bam_dir <- paste0(root_outdir, "/inputs/slim-bam/", sample_name, "/")
     dir.create(slim_bam_dir, showWarnings = FALSE, recursive = TRUE)
-    sorted_bam_dir <- paste0("../../microsec/inputs/sorted-bam/", sample_name)
+    sorted_bam_dir <- paste0(root_outdir, "/inputs/sorted-bam/", sample_name, "/")
     dir.create(sorted_bam_dir, showWarnings = FALSE, recursive = TRUE)
     bam_file_slim <- paste0(slim_bam_dir, sub(".bam", "", basename(bam_file)), ".SLIM.bam")
     bam_file_tmp <- paste0(slim_bam_dir, sub(".bam", "", basename(bam_file)), ".tmp.bam")
@@ -166,16 +180,19 @@ for (sample in seq_len(nrow(sample_info))) {
 
         if (tools::file_ext(bam_file) == "bam") {
             bam_file_sort <- paste0(sorted_bam_dir, sub(".bam", "", basename(bam_file)), "_sort.bam")
-            syscom <- paste0("samtools sort -@ 4 -o ", bam_file_sort, " ", bam_file)
+            syscom <- paste0("samtools sort -o ", bam_file_sort, " ", bam_file)
         } else if (tools::file_ext(bam_file) == "cram") {
             bam_file_sort <- paste0(sorted_bam_dir, sub(".bam", "", basename(bam_file)), "_sort.cram")
-            syscom <- paste0("samtools sort -@ 4 -O cram -o ", bam_file_sort, " ", bam_file)
+            syscom <- paste0("samtools sort -O cram -o ", bam_file_sort, " ", bam_file)
         }
 
         system(syscom)
-        syscom <- paste0("samtools index -@ 4 ", bam_file_sort)
+        run_or_stop(syscom)
+        syscom <- paste0("samtools index ", bam_file_sort)
 
         system(syscom)
+        run_or_stop(syscom)
+
         bam_file <- bam_file_sort
     } else {
         print(paste0(bam_file_slim, " already exists for bam file ", bam_file))
@@ -279,7 +296,7 @@ for (sample in seq_len(nrow(sample_info))) {
             }
         }
 
-        bed_dir <- paste0("../../microsec/inputs/bed/", sample_name)
+        bed_dir <- paste0(root_outdir, "/inputs/bed/", sample_name, "/")
         dir.create(bed_dir, showWarnings = FALSE, recursive = TRUE)
         bed_file <- paste0(bed_dir, sub(".bam", "", basename(bam_file)), ".bed")
         write_tsv(x = download_region, file = bed_file, progress = F, col_names = F)
@@ -302,22 +319,23 @@ for (sample in seq_len(nrow(sample_info))) {
         }
 
         system_out <- (system(syscom))
+        run_or_stop(syscom)
 
         if (system_out == 0) {
             system_out <- 1
-            syscom <- paste0("samtools sort -@ 4 -o ", bam_file_tmp, " ", bam_file_slim)
+            syscom <- paste0("samtools sort -o ", bam_file_tmp, " ", bam_file_slim)
             print(paste0("Sorting BAM file...  | ", bam_file_tmp, " | for sample: ", sample_name))
             system_out <- (system(syscom))
 
             if (system_out == 0) {
                 system_out <- 1
-                syscom <- paste0("samtools view -@ 4 -bS ", bam_file_tmp, " > ", bam_file_slim)
+                syscom <- paste0("samtools view -bS ", bam_file_tmp, " > ", bam_file_slim)
                 print(paste0("Compressing BAM file...  | ", bam_file_tmp, " | for sample: ", sample_name))
                 system_out <- (system(syscom))
 
                 if (system_out == 0) {
                     system_out <- 1
-                    syscom <- paste0("samtools index -@ 4 ", bam_file_slim)
+                    syscom <- paste0("samtools index ", bam_file_slim)
                     print(paste0("Indexing BAM file...  | ", bam_file_slim, " | for sample: ", sample_name))
                     system_out <- (system(syscom))
 
@@ -345,14 +363,14 @@ for (sample in seq_len(nrow(sample_info))) {
     bam_file <- bam_file_slim
     df_bam <- fun_load_bam(bam_file)
 
-    outdir <- paste0("../../microsec/outputs/", sample_name, "/")
+    outdir <- paste0(root_outdir, "//outputs/", sample_name, "/")
     dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
     outpath <- paste0(outdir, sample_name, ".microsec.tsv")
 
-    # if (file.exists(outpath)) {
-    #     print(paste("Output exists for", sample_name, "- skipping."))
-    #     next
-    # }
+    if (file.exists(outpath)) {
+        print(paste("Output exists for", sample_name, "- skipping."))
+        next
+    }
 
     # analysis
     print(paste("Analysing sample:", sample_name))

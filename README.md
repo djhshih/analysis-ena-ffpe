@@ -190,3 +190,46 @@ In another example from the same patient, we can see that in CHR2:29220907 a A>G
 
 Some variants appear in both FF and FFPE but get called in one due to a slightly higher frequency. We have to find a way to adjust the variant calling so that the variants are more reliable for benchmarking.
 
+
+
+## Data source
+
+### PRJEB8754
+https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0127146
+
+https://www.ebi.ac.uk/ena/browser/view/PRJEB8754
+
+### SRP044740
+Study Title: NA
+
+exomes of 13 FFPE breast tumor samples and 13 corresponding frozen samples
+
+https://www.ebi.ac.uk/ena/browser/view/SRP044740
+
+
+### PRJEB44073
+Study Title: The Mutational Concordance of Fixed Formalin Paraffin Embedded and Fresh Frozen Gastro-oesophageal Tumours Using Whole Exome Sequencing
+https://www.mdpi.com/2077-0383/10/2/215
+
+https://www.ebi.ac.uk/ena/browser/view/PRJEB44073
+
+WXS of 16 matched fresh frozen and FFPE gastro-oesophageal tumours
+
+
+## Variant Calling Decisions
+
+https://www.biostars.org/p/448808/
+
+https://gatk.broadinstitute.org/hc/en-us/community/posts/360059696811-Mutect2-not-calling-a-4-bp-deletion-in-BRCA1-with-50-AF
+
+https://gatkforums.broadinstitute.org/gatk/discussion/24507/mutect2-repeatedly-not-detecting-somatic-variant-idh2-r172k-with-solid-read-support-and-5-af
+
+https://gatk.broadinstitute.org/hc/en-us/community/posts/360057582511-HaplotypeCaller-data-generated-from-amplicon-sequencing
+
+https://gatk.broadinstitute.org/hc/en-us/community/posts/12450796994459-Asking-for-advice-on-Mutect2-calling-in-somatic-but-amplicon-data
+
+https://www.reddit.com/r/bioinformatics/comments/a71z2f/running_mutect2_with_dontusesoftclippedbases/
+
+
+## Issues
+There are too many reads in amplicon sequencing. Some variants appear in both FF and FFPE but get called in one due to a lightly higher frequency. We have to find a way to adjust the variant calling so that the variants are more reliable for benchmarking.
