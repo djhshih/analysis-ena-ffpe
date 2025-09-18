@@ -13,10 +13,11 @@ new_sample_info = (
 	sample_info
 	.with_columns([
 		pl.col("sample_alias").str.replace("BGI-FROZ", "").str.replace("BGI-FFPE", "").cast(int).alias("sample_number"),
-		pl.col("sample_alias").str.replace("BGI-", "").str.replace(r"\d+$", "").alias("sample_type")
+		pl.col("sample_alias").str.replace("BGI-", "").str.replace(r"\d+$", "").alias("sample_type"),
+		(pl.col("sample_alias") + pl.lit("_") + pl.col("run_accession")).alias("sample_name")
 	])
 	.sort("sample_number")
-	.select(['study_title','sample_number','sample_type','run_accession','experiment_accession','sample_accession','scientific_name','sample_alias','instrument_model','fastq_md5','fastq_ftp'])
+	.select(['sample_name','sample_number','sample_type','experiment_accession','sample_accession','scientific_name','sample_alias','run_accession','instrument_model','fastq_md5','fastq_ftp'])
 )
 
 new_sample_info.write_csv("sample-info_stage1.tsv", separator="\t")
@@ -66,7 +67,7 @@ for i in range(fastq_links.shape[0]):
 fastq_dir = "../../data/SRP044740/fq"
 os.makedirs(fastq_dir, exist_ok=True)
 
-fastq_get_path = "../data/fq/fastq_ftp_download.sh"
+fastq_get_path = f"{fastq_dir}/fastq_ftp_download.sh"
 with open(fastq_get_path, "w") as file:
     for line in wget:
         file.write(f"{line}\n")
