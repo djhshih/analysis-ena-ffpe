@@ -1,0 +1,27 @@
+#!/bin/bash
+mkdir -p N1_blood && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/007/SRR2911437/SRR2911437_1.fastq.gz -O N1_blood/N1_blood.fastq.gz
+mkdir -p N1_blood && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/007/SRR2911437/SRR2911437_2.fastq.gz -O N1_blood/N1_blood.fastq.gz
+mkdir -p N2_frozen && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/001/SRR2911441/SRR2911441_1.fastq.gz -O N2_frozen/N2_frozen.fastq.gz
+mkdir -p N2_frozen && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/001/SRR2911441/SRR2911441_2.fastq.gz -O N2_frozen/N2_frozen.fastq.gz
+mkdir -p N3_frozen && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/004/SRR2911444/SRR2911444_1.fastq.gz -O N3_frozen/N3_frozen.fastq.gz
+mkdir -p N3_frozen && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/004/SRR2911444/SRR2911444_2.fastq.gz -O N3_frozen/N3_frozen.fastq.gz
+mkdir -p N4_blood && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/003/SRR2911453/SRR2911453_1.fastq.gz -O N4_blood/N4_blood.fastq.gz
+mkdir -p N4_blood && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/003/SRR2911453/SRR2911453_2.fastq.gz -O N4_blood/N4_blood.fastq.gz
+mkdir -p T1_FFPE && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/008/SRR2911438/SRR2911438_1.fastq.gz -O T1_FFPE/T1_FFPE.fastq.gz
+mkdir -p T1_FFPE && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/008/SRR2911438/SRR2911438_2.fastq.gz -O T1_FFPE/T1_FFPE.fastq.gz
+mkdir -p T1_frozen && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/000/SRR2911440/SRR2911440_1.fastq.gz -O T1_frozen/T1_frozen.fastq.gz
+mkdir -p T1_frozen && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/000/SRR2911440/SRR2911440_2.fastq.gz -O T1_frozen/T1_frozen.fastq.gz
+mkdir -p T2_FFPE && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/002/SRR2911442/SRR2911442_1.fastq.gz -O T2_FFPE/T2_FFPE.fastq.gz
+mkdir -p T2_FFPE && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/002/SRR2911442/SRR2911442_2.fastq.gz -O T2_FFPE/T2_FFPE.fastq.gz
+mkdir -p T2_frozen && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/003/SRR2911443/SRR2911443_1.fastq.gz -O T2_frozen/T2_frozen.fastq.gz
+mkdir -p T2_frozen && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/003/SRR2911443/SRR2911443_2.fastq.gz -O T2_frozen/T2_frozen.fastq.gz
+mkdir -p T3_FFPE && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/007/SRR2911447/SRR2911447_1.fastq.gz -O T3_FFPE/T3_FFPE.fastq.gz
+mkdir -p T3_FFPE && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/007/SRR2911447/SRR2911447_2.fastq.gz -O T3_FFPE/T3_FFPE.fastq.gz
+mkdir -p T3_frozen && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/000/SRR2911450/SRR2911450_1.fastq.gz -O T3_frozen/T3_frozen.fastq.gz
+mkdir -p T3_frozen && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/000/SRR2911450/SRR2911450_2.fastq.gz -O T3_frozen/T3_frozen.fastq.gz
+mkdir -p T4_2007_FFPE && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/006/SRR2911456/SRR2911456_1.fastq.gz -O T4_2007_FFPE/T4_2007_FFPE.fastq.gz
+mkdir -p T4_2007_FFPE && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/006/SRR2911456/SRR2911456_2.fastq.gz -O T4_2007_FFPE/T4_2007_FFPE.fastq.gz
+mkdir -p T4_2009_FFPE && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/008/SRR2911458/SRR2911458_1.fastq.gz -O T4_2009_FFPE/T4_2009_FFPE.fastq.gz
+mkdir -p T4_2009_FFPE && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/008/SRR2911458/SRR2911458_2.fastq.gz -O T4_2009_FFPE/T4_2009_FFPE.fastq.gz
+mkdir -p T4_frozen && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/009/SRR2911459/SRR2911459_1.fastq.gz -O T4_frozen/T4_frozen.fastq.gz
+mkdir -p T4_frozen && wget -c ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR291/009/SRR2911459/SRR2911459_2.fastq.gz -O T4_frozen/T4_frozen.fastq.gz
