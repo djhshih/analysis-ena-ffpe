@@ -41,7 +41,8 @@ print("Done\n")
 sample_info_new = (
     sample_info_extra
     .with_columns(
-        pl.col("sample_alias").str.split("_").alias("sample_alias_split")
+        pl.col("sample_alias").str.split("_").alias("sample_alias_split"),
+        (pl.col("sample_alias") + pl.lit("_") + pl.col("run_accession")).alias("sample_name")
     )
     .with_columns(
         pl.col("sample_alias_split").list.get(0).alias("inferred_id"),
@@ -49,7 +50,7 @@ sample_info_new = (
         pl.col("sample_alias_split").list.get(2).alias("preservation")
     )
     .drop("sample_alias_split") # Optionally drop the intermediate list column
-    .select(['sample_title',  'inferred_id', 'sample_type', 'preservation', 'run_accession', 'sample_accession', 'experiment_accession', 'study_accession',  'sample_alias', 'center_name', 'tax_id', 'scientific_name', 'fastq_ftp', 'sra_ftp', 'bam_ftp'])
+    .select(['sample_name',  'inferred_id', 'sample_type', 'preservation', 'run_accession', 'sample_accession', 'experiment_accession', 'study_accession',  'sample_alias', 'center_name', 'tax_id', 'scientific_name', 'fastq_ftp', 'sra_ftp', 'bam_ftp'])
     .sort(["inferred_id", "preservation"])
 )
 
@@ -129,7 +130,7 @@ for link in fastq_links.get_column("fastq_ftp"):
     wget.append(f"mkdir -p {dir_name} && wget {link} -O {dir_name}/{basename}")
 
 
-fastq_get_path = "../data/fq/fastq_ftp_download.sh"
+fastq_get_path = "../../data/PRJEB8754/fq/fastq_ftp_download.sh"
 with open(fastq_get_path, "w") as file:
     for line in wget:
         file.write(f"{line}\n")
