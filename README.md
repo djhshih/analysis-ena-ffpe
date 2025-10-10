@@ -62,8 +62,9 @@ Here we use data from ENA PRJEB8754 to compare the performance of various FFPE a
 
 Then each dataset can be processed by following the steps below. Replace `<dataset_id>` with the actual dataset ID (e.g., `PRJEB8754`).
 
-4. Navigate to the `annot/<dataset_id>` directory and run `annot.py`:
+4. Navigate to the `annot/<dataset_id>` directory and run the following:
     ```bash
+    get.sh
     python annot.py
     ```
     This will generate several annotation files which will be used later in our analysis.
