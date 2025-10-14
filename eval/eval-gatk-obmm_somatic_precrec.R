@@ -1,39 +1,111 @@
 library(io)
 library(precrec)
 
-# TODO move common functions into module
-# TODO refactoring in progress
-
 source("../common-ffpe-snvf/R/eval.R")
 
-#######################################################
+#####################################################################################
 
-## Function to lookup matched Fresh Frozen sample, read snvs and annotate id
-# @params lookup_table (data.frame) | sample annotation table
-# @params vcf_dir (string) | Root directory where the vcfs are located
-# @return data.frame | Table of annotated ground truth snv
-get_ground_truth <- function(matched_ff_sample_name, vcf_dir) {
-    matched_ff <- read_vcf(file.path(vcf_dir, matched_ff_sample_name, sprintf("%s.vcf", matched_ff_sample_name)), columns = c("chrom", "pos", "ref", "alt"))
-    matched_ff <- add_id(matched_ff)
-    matched_ff
+# Function for performing per sample evaluation
+# @params: ffpe_tumor_annot (data.frame) | annotation table describing FFPE tumor samples
+# @params: ff_tumor_annot (data.frame) |  annotation table describing Fresh Frozen tumor samples
+# @params: case_id_col (string) | column name with unique identifier for each case/patient. Used for finding match FF for a FFPE sample
+# @params: sample_name_col (string) | column with the sample name used in the FFPE
+# @params: model_name (string) | name of model being evaluated and used in path
+# @params: ffpe_snvf_dir (string) | directory with the results of ffpe snvf filters
+# @params: outdir_root (string) | output directory for evaluation results
+# @params: vcf_ext (string) | vcf extension (.vcf or .vcf.gz)
+
+process_samples <- function(ffpe_tumor_annot, ff_tumor_annot, case_id_col, sample_name_col, model_name, vcf_dir, outdir_root, vcf_ext = ".vcf") {
+	# Evaluate Filter per sample
+	## Each sample is evaluated first due to the necessity of independently annotating the scores with ground truth
+
+	message("Processing samples:")
+	for (index in seq_len(nrow(ffpe_tumor_annot))){
+
+		## Get FFPE sample metadata
+		sample_name <- sprintf("%s",ffpe_tumor_annot[index, sample_name_col])
+		case_id <- ffpe_tumor_annot[index, case_id_col]
+
+		message(sprintf("	%s", sample_name))
+
+		## Getting matched FF metadata by matching patient ID
+		matched_ff_metadata <- frozen_tumoral[(frozen_tumoral[[case_id_col]] == case_id), ]
+		matched_ff_sample_name <- matched_ff_metadata[[sample_name_col]]
+		matched_ff_paths <- file.path(vcf_dir, matched_ff_sample_name, sprintf("%s%s", matched_ff_sample_name, vcf_ext))
+
+		gatk_obmm_path <- file.path(vcf_dir, sample_name, sprintf("%s%s", sample_name, vcf_ext))
+		
+		if(!file.exists(gatk_obmm_path)){
+			message(sprintf("		Result table for %s does not exist at: %s", model_name, gatk_obmm_path))
+			message(sprintf("		Skippping %s ...", sample_name))
+			next
+		}
+
+		d <- read_vcf(gatk_obmm_path, c("chrom", "pos", "ref", "alt", "filter"))
+		truth <- snv_union(matched_ff_paths)
+		d <- preprocess_gatk_obmm(d, truth)
+
+		## Check if truth labels are not exclusively TRUE or FALSE in d (variant_score_truth table
+		## Cases like these are skipped as evaluation is not supported by precrec
+		if(nrow(d[d$truth, ]) == 0 | nrow(d[!d$truth, ]) == 0){
+			message(sprintf("		no true labels exist for %s", sample_name))
+			next
+		}
+
+		# Evaluate the filter's performance
+		gatk_obmm_res <- evaluate_filter(d, model_name, sample_name)
+
+		# write results
+		write_sample_eval(d, gatk_obmm_res, outdir_root, sample_name, model_name)
+	}
 }
 
+
+# Function for combining the ground truth annotated SNV score table
+# @params: ffpe_tumoral_annot (data.frame) | annotation table describing FFPE tumor samples
+# @params: sample_name_col (string) | column with the sample name used in the FFPE
+# @params: model_name (string) | name of model being evaluated. The name used in path
+# @params: score_truth_outdir (srring) | directory where the ground truth annotated scores and truth were saved
+combine_snv_score_truth <- function(ffpe_tumoral_annot, sample_name_col, model_name, score_truth_outdir) {
+	message("Combining all the per sample ground truth SNV score tables into one")
+	do.call(
+		rbind,
+		lapply(seq_len(nrow(ffpe_tumoral_annot)), function(i) {
+			sample_name <- sprintf("%s",ffpe_tumoral_annot[i, sample_name_col])
+			message(sprintf("	%s", sample_name))
+			path <- file.path(score_truth_outdir, sample_name, sprintf("%s_%s-scores_truths.tsv", sample_name, model_name))
+			if (!file.exists(path)){
+				message(sprintf("		Warning: %s was not was not found. SKIPPING", path))
+			} else {
+				d <- read.delim(path)
+				d$sample_name <- sample_name
+				d
+			}
+		})
+	)
+}
+
+#################################################################################################
+
+
 model_name <- "gatk-obmm"
+message(sprintf("Evaluating %s: ", model_name))
 
-########################################################
-message("Evaluating gatk_obmm:")
 
-# Setup Directories
-## specific for each dataset
+
+#########################################  ENA PRJEB8754  #######################################
+
+# Setup directories
+# Dataset specific
 
 dataset_id <- "PRJEB8754"
 message(sprintf("Dataset: %s", dataset_id))
-# Directory for FFPE SNVF inputs
-ffpe_snvf.dir <- sprintf("../ffpe-snvf/%s/vcf_pass-orient-pos-sb_ad_filtered", dataset_id)
-# Directory for the Somatic VCFs
-vcf.dir <- sprintf("../vcf/%s/vcf_pass-orient-pos-sb_ad_filtered", dataset_id)
+
+# Somatic VCFs directory
+vcf_dir <- sprintf("../vcf/%s/vcf_pass-orient-pos-sb_ad_filtered", dataset_id)
+
 # Output directory
-main.outdir <- sprintf("%s/vcf_pass-orient-pos-sb_ad_filtered", dataset_id)
+outdir_root <- sprintf("%s/vcf_pass-orient-pos-sb_ad_filtered", dataset_id)
 score_truth_outdir <- sprintf("%s/vcf_pass-orient-pos-sb_ad_filtered/model-scores_truths", dataset_id)
 eval_outdir <- sprintf("%s/vcf_pass-orient-pos-sb_ad_filtered/roc-prc-auc/precrec", dataset_id)
 
@@ -44,158 +116,81 @@ lookup_table <- read.delim(sprintf("../annot/%s/sample-info_matched-ff-ffpe_on-p
 # Stratify annotation table based on FFPE and FF Somatic Variants
 ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE"), ]
 frozen_tumoral <- lookup_table[(lookup_table$preservation == "Frozen"), ]
+# Skipping this since this was not processed. Revisit later
+frozen_tumoral <- frozen_tumoral[!grepl("Pat13-2nd-run_Meta_Frozen", frozen_tumoral$sample_alias), ]
 
+# ---------------
 
-# Evaluate gatk_obmm
-## Per Sample
-## Each sample is evaluated first due to the necessity of independently annotating the scores with ground truth
+# Perform per sample evaluation
+process_samples(ffpe_tumor_annot = ffpe_tumoral, ff_tumor_annot = frozen_tumoral, case_id_col = "case_id", sample_name_col = "sample_name", model_name, vcf_dir, outdir_root)
 
-message("Processing samples:")
-for (index in seq_len(nrow(ffpe_tumoral))){
-
-	## Get FFPE sample metadata
-	sample_name <- sprintf("%s_%s",ffpe_tumoral[index, "sample_alias"], ffpe_tumoral[index, "run_accession"])
-	pat_id <- ffpe_tumoral[index, "inferred_id"]
-
-	## Getting matched FF metadata by matching patient ID
-	matched_ff_metadata <- frozen_tumoral[(frozen_tumoral$inferred_id == pat_id), ]
-    matched_ff_sample_name <- sprintf("%s_%s",matched_ff_metadata[1, "sample_alias"], matched_ff_metadata[1, "run_accession"])
-
-	d <- read_gatk_snv(sample_name, model_name, vcf.dir)
-	truth <- get_ground_truth(matched_ff_sample_name, vcf.dir)
-	d <- preprocess_gatk_obmm(d, truth)
-
-	## Check if true labels exist in the variant_score_truth table (d)
-	## If not this means there's no overlap between FFPE and FF variants
-	## Cases like these are skipped as evaluation is not supported by precrec
-	if(nrow(d[d$truth, ]) == 0){
-		message(sprintf("	no true labels exist for %s", sample_name))
-		next
-	}
-
-	message(sprintf("	%s", sample_name))
-
-	# Evaluate the filter's performance
-	gatk_obmm_res <- evaluate_filter(d, model_name, sample_name)
-
-	# write results
-	write_sample_eval(d, gatk_obmm_res, main.outdir, sample_name, model_name)
-
-}
-
-
-
-# Overall Evaluation
-## The scores annotated with ground truth is combined into a single dataframe
-message("	performing Evaluation across all samples")
-gatk_obmm_all_score_truth <- do.call(
-	rbind,
-	lapply(seq_len(nrow(ffpe_tumoral)), function(i) {
-		sample_name <- sprintf("%s_%s",ffpe_tumoral[i, "sample_alias"], ffpe_tumoral[i, "run_accession"])
-		path <- file.path(score_truth_outdir, sample_name, sprintf("%s_%s-scores_truths.tsv", sample_name, model_name))
-		if (!file.exists(path)){
-			message(sprintf("	Warning: %s was not was not found. SKIPPING", path))
-		} else {
-			d <- read.delim(path)
-			d$sample_name <- sample_name
-			d
-		}
-	})
-)
-
+# Combine ground truth annotated score tables into one
+gatk_obmm_all_score_truth <- combine_snv_score_truth(ffpe_tumoral_annot = ffpe_tumoral, sample_name_col = "sample_name", model_name, score_truth_outdir)
 
 # Evaluate across all samples
 gatk_obmm_overall_res <- evaluate_filter(gatk_obmm_all_score_truth, model_name, "all-samples")
 write_overall_eval(gatk_obmm_all_score_truth, gatk_obmm_overall_res, score_truth_outdir, eval_outdir, "all-samples", model_name)
 
+##############################################################################################
 
-#############################################
+
+
+
+######################################  ENA SRP044740  #######################################
 
 # Setup Directories and lookup table for ENA SRP044740
 
 dataset_id <- "SRP044740"
 message(sprintf("Dataset: %s", dataset_id))
-# Directory for FFPE SNVF inputs
-ffpe_snvf.dir <- sprintf("../ffpe-snvf/%s/vcf_filtered_pass_orientation", dataset_id)
+
 # Directory for the Somatic VCFs
-vcf.dir <- sprintf("../vcf/%s/vcf_filtered_pass_orientation", dataset_id)
+vcf_dir <- sprintf("../vcf/%s/vcf_filtered_pass_orientation", dataset_id)
 # Output directory
-main.outdir <- sprintf("%s/vcf_filtered_pass_orientation", dataset_id)
+outdir_root <- sprintf("%s/vcf_filtered_pass_orientation", dataset_id)
 score_truth_outdir <- sprintf("%s/vcf_filtered_pass_orientation/model-scores_truths", dataset_id)
 eval_outdir <- sprintf("%s/vcf_filtered_pass_orientation/roc-prc-auc/precrec", dataset_id)
 
 
 # Read Annotation Table
 lookup_table <- read.delim(sprintf("../annot/%s/sample-info_stage1.tsv", dataset_id))
+lookup_table$case_id <- lookup_table$sample_number
 
 # Stratify annotation table based on FFPE and FF Somatic Variants
 ffpe_tumoral <- lookup_table[(lookup_table$sample_type == "FFPE"), ]
 frozen_tumoral <- lookup_table[(lookup_table$sample_type == "FROZ"), ]
 
-# Evaluate gatk_obmm
-## Per Sample
-## Each sample is evaluated first due to the necessity of independently annotating the scores with ground truth
-message("Processing samples:")
-for (index in seq_len(nrow(ffpe_tumoral))){
 
-	## Get FFPE sample metadata
-	sample_name <- sprintf("%s_%s",ffpe_tumoral[index, "sample_alias"], ffpe_tumoral[index, "run_accession"])
-	pat_id <- ffpe_tumoral[index, "sample_number"]
-	message(sprintf("	%s", sample_name))
+# ------------------------------------------------------
 
-	## Getting matched FF metadata by matching patient ID
-	matched_ff_metadata <- frozen_tumoral[(frozen_tumoral$sample_number == pat_id), ]
-    matched_ff_sample_name <- sprintf("%s_%s",matched_ff_metadata[1, "sample_alias"], matched_ff_metadata[1, "run_accession"])
-
-	d <- read_gatk_snv(sample_name, model_name, vcf.dir)
-	truth <- get_ground_truth(matched_ff_sample_name, vcf.dir)
-	d <- preprocess_gatk_obmm(d, truth)
-
-	# Evaluate the filter's performance
-	gatk_obmm_res <- evaluate_filter(d, model_name, sample_name)
-
-	# write results
-	write_sample_eval(d, gatk_obmm_res, main.outdir, sample_name, model_name)
-
-}
-
-# Overall Evaluation
-## The scores annotated with ground truth is combined into a single dataframe
-message("	performing Evaluation across all samples")
-gatk_obmm_all_score_truth <- do.call(
-	rbind,
-	lapply(seq_len(nrow(ffpe_tumoral)), function(i) {
-		sample_name <- sprintf("%s_%s",ffpe_tumoral[i, "sample_alias"], ffpe_tumoral[i, "run_accession"])
-		path <- file.path(score_truth_outdir, sample_name, sprintf("%s_%s-scores_truths.tsv", sample_name, model_name))
-		if (!file.exists(path)){
-			message(sprintf("	Warning: %s was not was not found. SKIPPING", path))
-		} else {
-			d <- read.delim(path)
-			d$sample_name <- sample_name
-			d
-		}
-	})
-)
+# Perform per sample evaluation
+process_samples(ffpe_tumor_annot = ffpe_tumoral, ff_tumor_annot = frozen_tumoral, case_id_col = "case_id", sample_name_col = "sample_name", model_name, vcf_dir, outdir_root)
 
 
+# Combine ground truth annotated score tables into one
+gatk_obmm_all_score_truth <- combine_snv_score_truth(ffpe_tumoral_annot = ffpe_tumoral, sample_name_col = "sample_name", model_name, score_truth_outdir)
 
 # Evaluate across all samples
+message("Performing Evaluation across all samples")
 gatk_obmm_overall_res <- evaluate_filter(gatk_obmm_all_score_truth, model_name, "all-samples")
 write_overall_eval(gatk_obmm_all_score_truth, gatk_obmm_overall_res, score_truth_outdir, eval_outdir, "all-samples", model_name)
 
+#################################################################################################
 
-############################################
 
-# Setup Directories and lookup table for ENA SRP065941
+
+
+##################################  ENA SRP065941  ##############################################
+
+# Setup Directories and lookup table for ENA SRP044740
 
 dataset_id <- "SRP065941"
 message(sprintf("Dataset: %s", dataset_id))
-# Directory for FFPE SNVF inputs
-ffpe_snvf.dir <- sprintf("../ffpe-snvf/%s/vcf_filtered_pass_orientation", dataset_id)
+
 # Directory for the Somatic VCFs
-vcf.dir <- sprintf("../vcf/%s/vcf_filtered_pass_orientation", dataset_id)
+vcf_dir <- sprintf("../vcf/%s/vcf_filtered_pass_orientation", dataset_id)
+
 # Output directory
-main.outdir <- sprintf("%s/vcf_filtered_pass_orientation", dataset_id)
+outdir_root <- sprintf("%s/vcf_filtered_pass_orientation", dataset_id)
 score_truth_outdir <- sprintf("%s/vcf_filtered_pass_orientation/model-scores_truths", dataset_id)
 eval_outdir <- sprintf("%s/vcf_filtered_pass_orientation/roc-prc-auc/precrec", dataset_id)
 
@@ -205,133 +200,64 @@ lookup_table <- read.delim(sprintf("../annot/%s/sample-annotation_stage1.tsv", d
 
 # Stratify annotation table based on FFPE and FF Somatic Variants
 ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE") & (lookup_table$sample_type == "Tumor"), ]
-frozen_tumoral <- lookup_table[(lookup_table$preservation == "frozen") & (lookup_table$sample_type == "Tumor"), ]
-
-# Evaluate gatk_obmm
-## Per Sample
-## Each sample is evaluated first due to the necessity of independently annotating the scores with ground truth
-message("Processing samples:")
-for (index in seq_len(nrow(ffpe_tumoral))){
-
-	## Get FFPE sample metadata
-	sample_name <- ffpe_tumoral[index, "sample_name"]
-	case_id <- ffpe_tumoral[index, "case_id"]
-	message(sprintf("	%s", sample_name))
-
-	## Getting matched FF metadata by matching patient ID
-	matched_ff_metadata <- frozen_tumoral[(frozen_tumoral$case_id == case_id), ]
-    matched_ff_sample_name <- matched_ff_metadata[1, "sample_name"]
-
-	d <- read_gatk_snv(sample_name, model_name, vcf.dir)
-	truth <- get_ground_truth(matched_ff_sample_name, vcf.dir)
-	d <- preprocess_gatk_obmm(d, truth)
-
-	# Evaluate the filter's performance
-	gatk_obmm_res <- evaluate_filter(d, model_name, sample_name)
-
-	# write results
-	write_sample_eval(d, gatk_obmm_res, main.outdir, sample_name, model_name)
-
-}
-
-# Overall Evaluation
-## The scores annotated with ground truth is combined into a single dataframe
-message("	performing Evaluation across all samples")
-gatk_obmm_all_score_truth <- do.call(
-	rbind,
-	lapply(seq_len(nrow(ffpe_tumoral)), function(i) {
-		sample_name <- ffpe_tumoral[i, "sample_name"]
-		path <- file.path(score_truth_outdir, sample_name, sprintf("%s_%s-scores_truths.tsv", sample_name, model_name))
-		if (!file.exists(path)){
-			message(sprintf("	Warning: %s was not was not found. SKIPPING", path))
-		} else {
-			d <- read.delim(path)
-			d$sample_name <- sample_name
-			d
-		}
-	})
-)
+frozen_tumoral <- lookup_table[(lookup_table$preservation == "frozen")  & (lookup_table$sample_type == "Tumor"), ]
 
 
+# ------------------------------------------------------
+
+# Perform per sample evaluation
+process_samples(ffpe_tumor_annot = ffpe_tumoral, ff_tumor_annot = frozen_tumoral, case_id_col = "case_id", sample_name_col = "sample_name", model_name, vcf_dir, outdir_root)
+
+# Combine ground truth annotated score tables into one
+gatk_obmm_all_score_truth <- combine_snv_score_truth(ffpe_tumoral_annot = ffpe_tumoral, sample_name_col = "sample_name", model_name, score_truth_outdir)
 
 # Evaluate across all samples
+message("Performing Evaluation across all samples")
 gatk_obmm_overall_res <- evaluate_filter(gatk_obmm_all_score_truth, model_name, "all-samples")
 write_overall_eval(gatk_obmm_all_score_truth, gatk_obmm_overall_res, score_truth_outdir, eval_outdir, "all-samples", model_name)
 
+###########################################################################################
 
 
-#############################################
 
-# Setup Directories and lookup table for ENA SRP065941
+#################################  ENA PRJEB44073  ########################################
+
+# Setup Directories and lookup table for ENA PRJEB44073
 
 dataset_id <- "PRJEB44073"
 message(sprintf("Dataset: %s", dataset_id))
-# Directory for FFPE SNVF inputs
-ffpe_snvf.dir <- sprintf("../ffpe-snvf/%s/vcf_filtered_pass_orientation", dataset_id)
+
 # Directory for the Somatic VCFs
-vcf.dir <- sprintf("../vcf/%s/vcf_filtered_pass_orientation", dataset_id)
+vcf_dir <- sprintf("../vcf/%s/vcf_filtered_pass_orientation", dataset_id)
 # Output directory
-main.outdir <- sprintf("%s/vcf_filtered_pass_orientation", dataset_id)
+outdir_root <- sprintf("%s/vcf_filtered_pass_orientation", dataset_id)
 score_truth_outdir <- sprintf("%s/vcf_filtered_pass_orientation/model-scores_truths", dataset_id)
 eval_outdir <- sprintf("%s/vcf_filtered_pass_orientation/roc-prc-auc/precrec", dataset_id)
 
 
 # Read Annotation Table
 lookup_table <- read.delim(sprintf("../annot/%s/sample-info_stage2.tsv", dataset_id))
-lookup_table <- lookup_table[lookup_table$sample_alias != "Sample_B83_0029", ]
 
 # Stratify annotation table based on FFPE and FF Somatic Variants
 ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE"), ]
 frozen_tumoral <- lookup_table[(lookup_table$preservation == "Frozen"), ]
 
-# Evaluate gatk_obmm
-## Per Sample
-## Each sample is evaluated first due to the necessity of independently annotating the scores with ground truth
-message("Processing samples:")
-for (index in seq_len(nrow(ffpe_tumoral))){
 
-	## Get FFPE sample metadata
-	sample_name <- ffpe_tumoral[index, "sample_alias"]
-	case_id <- ffpe_tumoral[index, "case_id"]
-	message(sprintf("	%s", sample_name))
+# ------------------------------------------------------
 
-	## Getting matched FF metadata by matching patient ID
-	matched_ff_metadata <- frozen_tumoral[(frozen_tumoral$case_id == case_id), ]
-    matched_ff_sample_name <- matched_ff_metadata[1, "sample_alias"]
+# Perform per sample evaluation
+process_samples(ffpe_tumor_annot = ffpe_tumoral, ff_tumor_annot = frozen_tumoral, case_id_col = "case_id", sample_name_col = "sample_alias", model_name, vcf_dir, outdir_root)
 
-	d <- read_gatk_snv(sample_name, model_name, vcf.dir)
-	truth <- get_ground_truth(matched_ff_sample_name, vcf.dir)
-	d <- preprocess_gatk_obmm(d, truth)
-
-	# Evaluate the filter's performance
-	gatk_obmm_res <- evaluate_filter(d, model_name, sample_name)
-
-	# write results
-	write_sample_eval(d, gatk_obmm_res, main.outdir, sample_name, model_name)
-
-}
-
-# Overall Evaluation
-## The scores annotated with ground truth is combined into a single dataframe
-message("	performing Evaluation across all samples")
-gatk_obmm_all_score_truth <- do.call(
-	rbind,
-	lapply(seq_len(nrow(ffpe_tumoral)), function(i) {
-		sample_name <- ffpe_tumoral[i, "sample_alias"]
-		path <- file.path(score_truth_outdir, sample_name, sprintf("%s_%s-scores_truths.tsv", sample_name, model_name))
-		if (!file.exists(path)){
-			message(sprintf("	Warning: %s was not was not found. SKIPPING", path))
-		} else {
-			d <- read.delim(path)
-			d$sample_name <- sample_name
-			d
-		}
-	})
-)
-
-
+# Combine ground truth annotated score tables into one
+gatk_obmm_all_score_truth <- combine_snv_score_truth(ffpe_tumoral_annot = ffpe_tumoral, sample_name_col = "sample_alias", model_name, score_truth_outdir)
 
 # Evaluate across all samples
+message("Performing Evaluation across all samples")
 gatk_obmm_overall_res <- evaluate_filter(gatk_obmm_all_score_truth, model_name, "all-samples")
 write_overall_eval(gatk_obmm_all_score_truth, gatk_obmm_overall_res, score_truth_outdir, eval_outdir, "all-samples", model_name)
+
+##############################################################################################
+
+
+
 
