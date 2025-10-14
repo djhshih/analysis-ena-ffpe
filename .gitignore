@@ -5,3 +5,8 @@
 **/script*
 *.pdf
 **/sbatch_log
+**/*.vcf
+**/*log
+**/*.vcf*
+**/*job
+**/*.inputs
