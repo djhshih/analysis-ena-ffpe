@@ -130,33 +130,33 @@ Then each dataset can be processed by following the steps below. Replace `<datas
 
 The datasets are from the European Nucleotide Archive (ENA) which have matched FFPE and Fresh Frozen (FF) samples.
 
-    1. **[PRJEB8754](https://www.ebi.ac.uk/ena/browser/view/PRJEB8754)** - This dataset contains match FFPE and FF samples from 10 patients from the metastasis stage of colorectal cancer. There are also 4 additional FFPE samples from the primary stage of the same patients.
+1. **[PRJEB8754](https://www.ebi.ac.uk/ena/browser/view/PRJEB8754)** - This dataset contains match FFPE and FF samples from 10 patients from the metastasis stage of colorectal cancer. There are also 4 additional FFPE samples from the primary stage of the same patients.
 
-        - Status: Processed
-        - Type: Amplicon Sequencing
-        - Tissues: Colorectal
-        - Publication: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0127146
+    - Status: Processed
+    - Type: Amplicon Sequencing
+    - Tissues: Colorectal
+    - Publication: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0127146
 
-    2. **[SRP044740](https://www.ebi.ac.uk/ena/browser/view/SRP044740)** - This dataset contains exome sequence of 13 FFPE breast tumor samples and 13 corresponding frozen samples.
+2. **[SRP044740](https://www.ebi.ac.uk/ena/browser/view/SRP044740)** - This dataset contains exome sequence of 13 FFPE breast tumor samples and 13 corresponding frozen samples.
 
-        - Status: Processed
-        - Type: Whole Exome Sequencing (WXS)
-        - Tissues: Breast
-        - Publication: No publication found.
+    - Status: Processed
+    - Type: Whole Exome Sequencing (WXS)
+    - Tissues: Breast
+    - Publication: No publication found.
 
-    3. **[PRJEB44073](https://www.ebi.ac.uk/ena/browser/view/PRJEB44073)** - Whole Exome Sequencing (WXS) of 16 matched fresh frozen and FFPE gastro-oesophageal tumours' samples.
-    
-        - Status: Processing
-        - Type: Whole Exome Sequencing (WXS)
-        - Tissues: Gastro-oesophageal
-        - Publication: https://www.mdpi.com/2077-0383/10/2/215
+3. **[PRJEB44073](https://www.ebi.ac.uk/ena/browser/view/PRJEB44073)** - Whole Exome Sequencing (WXS) of 16 matched fresh frozen and FFPE gastro-oesophageal tumours' samples.
 
-    4. **[SRP065941](https://www.ebi.ac.uk/ena/browser/view/SRP065941)** - Whole Exome Sequencing (WXS) of 4 matched fresh frozen and FFPE samples.
+    - Status: Processing
+    - Type: Whole Exome Sequencing (WXS)
+    - Tissues: Gastro-oesophageal
+    - Publication: https://www.mdpi.com/2077-0383/10/2/215
 
-        - Status: Processing
-        - Type: Whole Exome Sequencing (WXS)
-        - Tissues: Undisclosed
-        - Publication: https://doi.org/10.1371/journal.pone.0144162
+4. **[SRP065941](https://www.ebi.ac.uk/ena/browser/view/SRP065941)** - Whole Exome Sequencing (WXS) of 4 matched fresh frozen and FFPE samples.
+
+    - Status: Processing
+    - Type: Whole Exome Sequencing (WXS)
+    - Tissues: Undisclosed
+    - Publication: https://doi.org/10.1371/journal.pone.0144162
 
 
 ## Variant Calling Decisions
