@@ -1,7 +1,7 @@
 # Analysis of paired FFPE - fresh frozen samples
 
 ## Description
-Here we use data from ENA PRJEB8754 to compare the performance of various FFPE artifact filtering tools on paired FFPE and Fresh Frozen samples in the dataset.
+Here we use data from various datasets from the European Nucleotide Archive (ENA) to compare the performance of various FFPE artifact filtering tools on paired FFPE and Fresh Frozen samples in the dataset.
 
 ## Dependencies
 - python
