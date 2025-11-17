@@ -31,6 +31,7 @@ if (endsWith(basename(vcf_path), ".vcf")){
 message(cat(sprintf("\nProcessing %s \n", sample_name)))
 message(cat("\tGetting descriptors from VCF \n"))
 descriptors <- get_descriptors(vcf_filename = vcf_filename, fasta_filename = ref_genome)
+descriptors <- descriptors[!rowSums(sapply(descriptors, function(x) is.infinite(x))) > 0, ] # | is.nan(x
 
 message(cat("\n\tRunning IdeaFix XGBoost Model \n"))
 predictions_xgboost <- classify_variants(variant_descriptors = descriptors, algorithm = "XGBoost")
