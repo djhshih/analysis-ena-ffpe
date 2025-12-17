@@ -1,4 +1,3 @@
-# %%
 #!/usr/bin/env python3
 import polars as pl
 import os
@@ -7,7 +6,6 @@ import os
 metadata = pl.read_csv("sample-info_unprocessed.tsv", separator="\t")
 
 
-# %%
 sample_annot = (
 	metadata
 	.with_columns(
@@ -28,7 +26,6 @@ sample_annot = (
 sample_annot.write_csv("sample-info_stage2.tsv", separator="\t")
 print("Saved table with all sample information to: sample-info_stage1.tsv\n")
 
-# %%
 # Obtain sample counts
 # 10 matched FFPE FF samples as mentioned in the pubication
 print("Counting FFPE and Frozen samples available")
@@ -44,7 +41,6 @@ matched_ffpe_ff = (
 matched_ffpe_ff.write_csv("sample_preservation_count.tsv", separator="\t")
 print("\tCount table saved to: sample_preservation_count.tsv\n")
 
-# %%
 ## Obtain counts were there is atleast 1 FFPE and 1 FF sample
 matched_ffpe_ff = matched_ffpe_ff.filter((pl.col("FFPE_count") > 0) & (pl.col("FF_count") > 0))
 
@@ -61,7 +57,6 @@ sample_info_matched_ffpe_ff_pat.write_csv("sample-info_matched-ff-ffpe_on-pat-id
 print("Filtered Sample info with the criteria of at least 1 FFPE and 1 FF sample from each patient: sample-info_matched-ff-ffpe_on-pat-id.tsv")
 
 
-# %%
 
 ## Filtering based on Patients who have 1 FFPE and 1 FF sample within the same sample type. 
 ## This only keeps the 10 matched FFPE-FF metastasis samples as mentioned in the publications
@@ -69,7 +64,6 @@ sample_info_matched_ffpe_ff_pat_stype = sample_annot.join(matched_ffpe_ff, on=["
 sample_info_matched_ffpe_ff_pat_stype.write_csv("sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv", separator="\t")
 print("Filtered Sample info with the criteria of atleast 1 FFPE and 1 FF sample from each patient within same sample type: sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv")
 
-# %%
 ## Create a bash script to dowload the fastqs
 fastq_links = (
 	sample_annot
@@ -86,7 +80,7 @@ for i in range(fastq_links.shape[0]):
     link = f"ftp://{fastq_links[i, "fastq_ftp"]}"
     sample_name = f"{fastq_links[i, "sample_name"]}"
     
-    wget.append(f'mkdir -p {sample_name} && wget "ftp://{link}" -O {sample_name}/{sample_name}.fastq.gz')
+    wget.append(f'mkdir -p {sample_name} && wget "{link}" -O {sample_name}/{sample_name}.fastq.gz')
 
 
 fastq_get_path = "../../data/PRJEB8754/fq/fastq_ftp_download.sh"
