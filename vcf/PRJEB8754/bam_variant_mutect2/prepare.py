@@ -5,7 +5,12 @@
 import os
 import json
 import pandas as pd
-import numpy as np
+
+def return_path_if_exists(path: str, abs=True) -> str:
+	if os.path.exists(path):
+		return os.path.abspath(path) if abs else path
+	else:
+		raise FileNotFoundError(f"File not found: {path}")
 
 # ---
 
@@ -13,11 +18,11 @@ import numpy as np
 ref_root = '../../../data/ref'
 ref_fname = 'Homo_sapiens_assembly38'
 vcf_root = "../../../data/gatk-best-practices/somatic-hg38"
-bam_root = "../../../data/bam"
+bam_root = "../../../data/PRJEB8754/bam"
 bundle_root = "../../../data/gatk-test-data/mutect2"
 intervals_root = "../../../data/misc"
-infname = '../../../annot/PRJEB8754/sample-info_matched-ff-ffpe_on-pat-id.tsv'
-gatk_path = "/home/moyukh/miniconda3/envs/ena-ffpe/share/gatk4-4.6.2.0-0/gatk-package-4.6.2.0-local.jar"
+infname = '../../../annot/PRJEB8754/sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv'
+gatk_path = "/home/moyukh/miniconda3/envs/ffpe-bench/share/gatk4-4.6.2.0-0/gatk-package-4.6.2.0-local.jar"
 
 out_dir = 'inputs'
 
@@ -35,21 +40,21 @@ pheno = pd.read_csv(infname, sep='\t')
 # base wdl input
 base = {
 	'bam_variant_mutect2.run_funcotator': False,
-	'bam_variant_mutect2.intervals': os.path.join(intervals_path, 'standard_chromosomes.list'),
-	'bam_variant_mutect2.ref_fasta': ref_fpath + '.fasta',
-	'bam_variant_mutect2.ref_fai': ref_fpath + '.fasta.fai',
-	'bam_variant_mutect2.ref_dict': ref_fpath + '.dict',
-	'bam_variant_mutect2.pon': os.path.join(vcf_path, '1000g_pon.hg38.vcf.gz'),
-	'bam_variant_mutect2.pon_idx': os.path.join(vcf_path, '1000g_pon.hg38.vcf.gz.tbi'),
-	'bam_variant_mutect2.gnomad': os.path.join(vcf_path, 'af-only-gnomad.hg38.vcf.gz'),
-	'bam_variant_mutect2.gnomad_idx': os.path.join(vcf_path, 'af-only-gnomad.hg38.vcf.gz.tbi'),
-	'bam_variant_mutect2.variants_for_contamination':  os.path.join(vcf_path, 'small_exac_common_3.hg38.vcf.gz'),
-	'bam_variant_mutect2.variants_for_contamination_idx': os.path.join(vcf_path, 'small_exac_common_3.hg38.vcf.gz.tbi'),
-	'bam_variant_mutect2.realignment_index_bundle': os.path.join(bundle_path, 'Homo_sapiens_assembly38.index_bundle'),
-	'bam_variant_mutect2.m2_extra_args': '--disable-read-filter NotDuplicateReadFilter --downsampling-stride 50 --linked-de-bruijn-graph --max-reads-per-alignment-start 0 --annotations-to-exclude StrandBiasBySample --annotations-to-exclude ReadPosRankSumTest', #  --max-reads-per-alignment-start 500 --dont-use-soft-clipped-bases
+	'bam_variant_mutect2.intervals': return_path_if_exists(os.path.join(ref_root, 'wgs_calling_regions.hg38.interval_list')),
+	'bam_variant_mutect2.ref_fasta': return_path_if_exists(ref_fpath + '.fasta'),
+	'bam_variant_mutect2.ref_fai': return_path_if_exists(ref_fpath + '.fasta.fai'),
+	'bam_variant_mutect2.ref_dict': return_path_if_exists(ref_fpath + '.dict'),
+	'bam_variant_mutect2.pon': return_path_if_exists(os.path.join(vcf_path, '1000g_pon.hg38.vcf.gz')),
+	'bam_variant_mutect2.pon_idx': return_path_if_exists(os.path.join(vcf_path, '1000g_pon.hg38.vcf.gz.tbi')),
+	'bam_variant_mutect2.gnomad': return_path_if_exists(os.path.join(vcf_path, 'af-only-gnomad.hg38.vcf.gz')),
+	'bam_variant_mutect2.gnomad_idx': return_path_if_exists(os.path.join(vcf_path, 'af-only-gnomad.hg38.vcf.gz.tbi')),
+	'bam_variant_mutect2.variants_for_contamination':  return_path_if_exists(os.path.join(vcf_path, 'small_exac_common_3.hg38.vcf.gz')),
+	'bam_variant_mutect2.variants_for_contamination_idx': return_path_if_exists(os.path.join(vcf_path, 'small_exac_common_3.hg38.vcf.gz.tbi')),
+	# 'bam_variant_mutect2.realignment_index_bundle': os.path.join(bundle_path, 'Homo_sapiens_assembly38.index_bundle'),
+	'bam_variant_mutect2.m2_extra_args': '--disable-read-filter NotDuplicateReadFilter --downsampling-stride 50 --linked-de-bruijn-graph --max-reads-per-alignment-start 0', #  --max-reads-per-alignment-start 500 --dont-use-soft-clipped-bases --annotations-to-exclude StrandBiasBySample --annotations-to-exclude ReadPosRankSumTest
 	'bam_variant_mutect2.scatter_count': 4,
 	'bam_variant_mutect2.gatk_docker': 'broadinstitute/gatk:4.6.2.0',
-	'bam_variant_mutect2.gatk_override': gatk_path,
+	'bam_variant_mutect2.gatk_override': return_path_if_exists(gatk_path),
 	'bam_variant_mutect2.bam_mutect2.mem': 4,
 	'bam_variant_mutect2.run_orientation_bias_mixture_model_filter': True,
 }
@@ -59,11 +64,10 @@ base = {
 
 for i in range(pheno.shape[0]):
 	
-	alias = pheno.loc[i, "sample_alias"]
-	run_accession = pheno.loc[i, "run_accession"]
+	sample_name = pheno.loc[i, "sample_name"]
 	
-	bam = f"{bam_root}/{alias}_{run_accession}.bam"
-	bai = f"{bam_root}/{alias}_{run_accession}.bai"
+	bam = f"{bam_root}/{sample_name}.bam"
+	bai = f"{bam_root}/{sample_name}.bai"
 	
 	if not os.path.exists(bam):
 		raise FileNotFoundError(f"{bam} does not exist")
@@ -74,11 +78,11 @@ for i in range(pheno.shape[0]):
 	out = base.copy()
 	out['bam_variant_mutect2.tumor_bam'] = bam
 	out['bam_variant_mutect2.tumor_bai'] = bai
-	out_path = os.path.join(out_dir, f"{alias}_{run_accession}.inputs")
+	out_path = os.path.join(out_dir, f"{sample_name}.inputs")
 	with open(out_path, 'w') as outf:
 		outf.write(json.dumps(out, indent=True, sort_keys=True))
 
-	print(f"Prepared inputs for: {alias}")
+	print(f"Prepared inputs for: {sample_name}")
 
 print("Done.")
 
