@@ -78,17 +78,18 @@ wget = ["#!/bin/bash"]
 
 for i in range(fastq_links.shape[0]):
     link = f"ftp://{fastq_links[i, "fastq_ftp"]}"
-    sample_name = f"{fastq_links[i, "sample_name"]}"
+    sample_name = f"{fastq_links[i, "sample_alias"]}"
+    file_name = f"{fastq_links[i, "sample_alias"]}_{os.path.basename(fastq_links[i, "fastq_ftp"])}"
     
-    wget.append(f'mkdir -p {sample_name} && wget "{link}" -O {sample_name}/{sample_name}.fastq.gz')
+    wget.append(f'mkdir -p {sample_name} && wget "{link}" -O {sample_name}/{file_name}')
 
 
-fastq_get_path = "../../data/PRJEB8754/fq/fastq_ftp_download.sh"
-with open(fastq_get_path, "w") as file:
+download_script_path = "../../data/PRJEB8754/fq/fastq_ftp_download.sh"
+with open(download_script_path, "w") as file:
     for line in wget:
         file.write(f"{line}\n")
 
-print(f"Created a bash script to obtain fastqs from the EBI ftp at : {fastq_get_path}")
+print(f"Created a bash script to obtain fastqs from the EBI ftp at : {download_script_path}")
 
 
 
