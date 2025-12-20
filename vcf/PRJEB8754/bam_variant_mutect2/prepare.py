@@ -55,7 +55,6 @@ base = {
 	'bam_variant_mutect2.scatter_count': 4,
 	'bam_variant_mutect2.gatk_docker': 'broadinstitute/gatk:4.6.2.0',
 	'bam_variant_mutect2.gatk_override': return_path_if_exists(gatk_path),
-	'bam_variant_mutect2.bam_mutect2.mem': 4,
 	'bam_variant_mutect2.run_orientation_bias_mixture_model_filter': True,
 }
 
@@ -66,8 +65,8 @@ for i in range(pheno.shape[0]):
 	
 	sample_name = pheno.loc[i, "sample_name"]
 	
-	bam = f"{bam_root}/{sample_name}.bam"
-	bai = f"{bam_root}/{sample_name}.bai"
+	bam = f"{bam_root}/{sample_name}/{sample_name}.bam"
+	bai = f"{bam_root}/{sample_name}/{sample_name}.bai"
 	
 	if not os.path.exists(bam):
 		raise FileNotFoundError(f"{bam} does not exist")
