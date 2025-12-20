@@ -68,7 +68,7 @@ base = {
 # write wdl input json file for each sample
 for x in samples:
     out = base.copy()
-    out['fastq_align_paired.sample_name'] = x['sample_name']
+    out['fastq_align_paired.sample_id'] = x['sample_name']
     out['fastq_align_paired.fastq_bwa_mem_paired.fastqs_r1'] = [x['fastqs_r1']]
     out['fastq_align_paired.fastq_bwa_mem_paired.fastqs_r2'] = [x['fastqs_r2']]
     out['fastq_align_paired.fastq_bwa_mem_paired.rg_header'] = return_path_if_exists(f"{rg_root}/{x["sample_name"]}.rg.txt")
