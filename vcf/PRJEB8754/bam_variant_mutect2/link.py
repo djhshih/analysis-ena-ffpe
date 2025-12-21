@@ -5,7 +5,7 @@ import os
 
 variant_paths = glob.glob("cromwell-executions/bam_variant_mutect2/*/call-vcf_filter/execution/*.vcf*")
 
-outdir_root = "../vcf_filtermutectcalls_obmm_unfiltered"
+outdir_root = "../vcf_filtermutectcalls_obmm_unfiltered_default-annot"
 
 for i, path in enumerate(variant_paths):
     basename = os.path.basename(path)
