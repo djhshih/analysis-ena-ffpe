@@ -4,7 +4,11 @@ import glob
 import os
 
 
-def get_ffpe_snvf_paths(dataset, variant_set):
+def get_ffpe_snvf_paths(dataset: str, variant_set: str) -> list:
+	"""
+	Returns the path for each FFPE SNVF model's
+	results for a specified variant set and dataset
+	"""
 
 	paths = sorted(
 		glob.glob(f"{dataset}/{variant_set}/*/*/*.mobsnvf.snv") +
@@ -12,7 +16,8 @@ def get_ffpe_snvf_paths(dataset, variant_set):
 		glob.glob(f"{dataset}/{variant_set}/*/*/*.sobdetector.snv") +
 		glob.glob(f"{dataset}/{variant_set}/*/*/*.microsec.tsv") +
 		glob.glob(f"{dataset}/{variant_set}/*/*/*.ideafix.tsv") +
-		glob.glob(f"{dataset}/{variant_set}/*/*/*.gatk-obmm.tsv")
+		glob.glob(f"{dataset}/{variant_set}/*/*/*.gatk-obmm.tsv") +
+		glob.glob(f"{dataset}/{variant_set}/*/*/*.ffpolish.tsv")
 	)
 
 	return paths
@@ -34,8 +39,7 @@ dset_target_vcf = {
 	"SRP065941" : "vcf_filtered_pass-orientation-dp10"
 }
 
-
-
+## Process each datasets
 for i, dset in enumerate(dset_vset.keys()):
 	
 	var_set = dset_vset[dset]
@@ -44,6 +48,7 @@ for i, dset in enumerate(dset_vset.keys()):
 	## Get paths to all the SNVF results
 	paths = get_ffpe_snvf_paths(dset, var_set)
 
+	## Subset each sample
 	for i, path in enumerate(paths):
 
 		model = os.path.basename(path).split(".")[-2]
@@ -92,7 +97,6 @@ for i, dset in enumerate(dset_vset.keys()):
 			
 
 print("All files processed.")
-
 
 
 
