@@ -1,6 +1,5 @@
 import os
 import glob
-from weakref import ref
 import polars as pl
 
 ## Functions
@@ -27,6 +26,19 @@ def create_filtering_scripts(models: list, vcf_path: str, bam_path: str, filtere
 			
 			with open(filename, "w") as f:
 				f.write(content)
+
+		elif model == "ffpolish":
+			outdir = "script_ffpolish"
+			os.makedirs(outdir, exist_ok=True)
+
+			content = [
+				"#!/usr/bin/env bash \n",
+				f"ffpolish filter -o {filtered_outdir}/ffpolish/{sample_name} -p {sample_name} {ref_path} {vcf_path} {bam_path} \n"
+			]
+			filename = f"{outdir}/{model}_{sample_name}.sh"
+			
+			with open(filename, "w") as f:
+				f.writelines(content)
 				
 		else:
 			
@@ -38,23 +50,22 @@ def create_filtering_scripts(models: list, vcf_path: str, bam_path: str, filtere
 			content = f"#!/bin/bash\nbash {template_dir} '{bam_path}' '{vcf_path}' '{filtered_outdir}' '{ref_path}'\n"
 			filename = f"{outdir}/{model}_{sample_name}.sh"
 		
-		with open(filename, "w") as f:
-			f.write(content)
+			with open(filename, "w") as f:
+				f.write(content)
 			
 		print(f"Created {model} filtering script for {vcf_path}")
 
 #--------------------
 
 ## user parameters
-models = ["mobsnvf", "vafsnvf", "sobdetector", "ideafix"]
+models = ["mobsnvf", "vafsnvf", "sobdetector", "ideafix", "ffpolish"]
 ref_path = return_path_if_exists("../../data/ref/Homo_sapiens_assembly38.fasta", abs=True)
-
 
 # Process each dataset
 
 ## PRJEB8754
-vcf_paths = sorted([os.path.abspath(path) for path in glob.glob("../../vcf/PRJEB8754/vcf_pass-orient-pos-sb_ad_filtered/*/*.vcf")])
-filtered_outdir = os.path.abspath("../PRJEB8754/vcf_pass-orient-pos-sb_ad_filtered")
+vcf_paths = sorted([os.path.abspath(path) for path in glob.glob("../../vcf/PRJEB8754/vcf_filtered_pass-orient-pos-sb-ad/*/*.vcf")])
+filtered_outdir = os.path.abspath("../PRJEB8754/vcf_filtered_pass-orient-pos-sb-ad")
 bam_dir = "../../data/PRJEB8754/bam"
 
 # skip non FFPE vcfs
