@@ -392,7 +392,7 @@ sample_paths = pl.DataFrame({
 
 ## Prepare microsec inputs and batch execution scripts
 prepare_dataset_inputs(
-	dataset = "{dataset}", 
+	dataset = f"{dataset}", 
 	variant_set = "filtered_pass-orient-pos-sb-ad", 
 	sample_paths = sample_paths
 )
