@@ -66,7 +66,7 @@ ref_path = return_path_if_exists("../../data/ref/Homo_sapiens_assembly38.fasta",
 ## PRJEB8754
 vcf_paths = sorted([os.path.abspath(path) for path in glob.glob("../../vcf/PRJEB8754/vcf_filtered_pass-orient-pos-sb-ad/*/*.vcf")])
 filtered_outdir = os.path.abspath("../PRJEB8754/vcf_filtered_pass-orient-pos-sb-ad")
-bam_dir = "../../data/PRJEB8754/bam"
+bam_dir = "../../data/PRJEB8754/bam_dup-unmarked"
 
 # skip non FFPE vcfs
 for vcf_path in vcf_paths:
