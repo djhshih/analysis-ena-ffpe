@@ -6,8 +6,6 @@ Here we use data from various datasets from the European Nucleotide Archive (ENA
 ## Dependencies
 - python
 - R
-- SOBDetector (included)
-- htspan ([djhshih/htspan](https://github.com/djhshih/htspan))
 - samtools
 - bcftools
 - cromwell
@@ -28,7 +26,6 @@ Here we use data from various datasets from the European Nucleotide Archive (ENA
 - grid
 - hrbrthemes
 - viridis
-- MicroSEC ([MANO-B/MicroSEC](https://github.com/MANO-B/MicroSEC))
 - Rsamtools
 - BiocGenerics
 - Biostrings
@@ -41,6 +38,19 @@ Here we use data from various datasets from the European Nucleotide Archive (ENA
 - numpy
 - matplotlib
 - seaborn
+
+
+### FFPE Artifact Filtering tools
+
+- htspan ([djhshih/htspan](https://github.com/djhshih/htspan))
+    - MOBSNVF
+    - VAFSNVF
+- MicroSEC ([MANO-B/MicroSEC](https://github.com/MANO-B/MicroSEC))
+- SOBDetector (included)
+- FFPolish
+- Ideafix
+- GATK Orientation Bias Mixture Model (Included with GATK Mutect2)
+
 
 ## Replication
 
@@ -137,7 +147,7 @@ The datasets are from the European Nucleotide Archive (ENA) which have matched F
     - Tissues: Colorectal
     - Publication: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0127146
 
-2. **[SRP044740](https://www.ebi.ac.uk/ena/browser/view/SRP044740)** - This dataset contains exome sequence of 13 FFPE breast tumor samples and 13 corresponding frozen samples.
+2. **[SRP044740](https://www.ebi.ac.uk/ena/browser/view/SRP044740)** - This dataset contains exome sequence of 13 Matched FFPE and Fresh Frozen samples from breast cancer patients. Each patients have 1 to 3 FFPE samples and 1 matched FF sample. 
 
     - Status: Processed
     - Type: Whole Exome Sequencing (WXS)
@@ -215,6 +225,9 @@ In another example from the same patient, we can see that in CHR2:29220907 a A>G
 
 Some variants appear in both FF and FFPE but get called in one due to a slightly higher frequency. We have to find a way to adjust the variant calling so that the variants are more reliable for benchmarking.
 
+### Issues
+
+Fastq was corrupted for one of Sample_B83_0029 from the PRJEB44073 repository. This sample was skipped from any further analysis.
 
 ### VCF Filtering
 
