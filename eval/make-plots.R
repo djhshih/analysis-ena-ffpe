@@ -2,17 +2,27 @@
 source("../common-ffpe-snvf/R/plot.R")
 
 dset_dirs <- c(
-	# "PRJEB8754/vcf_pass-orient-pos-sb_ad_filtered",
-	# "SRP044740/vcf_filtered_pass_orientation",
-	# "SRP065941/vcf_filtered_pass_orientation",
-	"PRJEB44073/vcf_filtered_pass_orientation"
+	"PRJEB8754/filtered_pass-orient-pos-sb-ad_micr1234-excluded",
+	"PRJEB44073/filtered_pass-orientation-dp10_micr1234-excluded",
+	"SRP044740/filtered_pass-orientation-dp10_micr1234-excluded",
+	"SRP065941/filtered_pass-orientation-dp10_micr1234-excluded"
 )
 
-dset_author <- c(
-	"PRJEB8754" = "Betge15",
-	"SRP044740" = "ENA SRP044740",
-	"SRP065941" = "Oh15",
-	"PRJEB44073" = "Chong21"
+# dset_author <- c(
+# 	"PRJEB8754" = "Betge15",
+# 	"SRP044740" = "ENA SRP044740",
+# 	"SRP065941" = "Oh15",
+# 	"PRJEB44073" = "Chong21"
+# )
+
+models <- c(
+	"mobsnvf" = "MOBSNVF",
+	"vafsnvf" = "VAFSNVF",
+	"gatk-obmm" = "GATK-OBMM",
+	"sobdetector" = "SOBDetector",
+	"microsec" = "MicroSEC",
+	"ideafix" = "Ideafix",
+	"ffpolish" = "FFPolish"
 )
 
 for (dir in dset_dirs){
@@ -46,11 +56,18 @@ for (dir in dset_dirs){
 		# snv_count <- nrow(eval_snv_set)
 
 		roc_coord <- qread(roc_coord_paths[i])
+		roc_coord$model <- ifelse(roc_coord$model %in% names(models), models[roc_coord$model], roc_coord$model)
+
 		prc_coord <- qread(prc_coord_paths[i])
+		prc_coord$model <- ifelse(prc_coord$model %in% names(models), models[prc_coord$model], prc_coord$model)
 
-		roc_prc_plot <- make_roc_prc_plot(roc_coord, prc_coord, title = dset_author[dset], subtitle = NULL, caption = NULL, text_scale=1.5, line_width = 1)
+		plots <- make_roc_prc_plot(roc_coord, prc_coord, title = NULL, subtitle = NULL, caption = NULL, text_scale=2, line_width = 1.5, legend_rows = 3, individual_plots = TRUE, legend_scale = 0.8)
 
-		qdraw(roc_prc_plot, glue("{outdir}/{sample_name}_roc_prc_plot.pdf"), width = 7, height = 5)
+		qdraw(plots$roc_prc, glue("{outdir}/{sample_name}_roc_prc_plot.pdf"), width = 8, height = 6)
+		dir.create(glue("{outdir}/roc"), recursive = TRUE, showWarnings = FALSE)
+		qdraw(plots$roc, glue("{outdir}/roc/{sample_name}_roc_plot.pdf"), width = 5, height = 6)
+		dir.create(glue("{outdir}/prc"), recursive = TRUE, showWarnings = FALSE)
+		qdraw(plots$prc, glue("{outdir}/prc/{sample_name}_prc_plot.pdf"), width = 5, height = 6)
 
 	}
 }
