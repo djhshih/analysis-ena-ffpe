@@ -3,10 +3,8 @@ import glob
 import polars as pl
 
 ## Functions
-def return_path_if_exists(path: str, abs: bool =False) -> str:
-	if path.endswith(".bam"):
-		return os.path.abspath(path) if abs else path
-	elif os.path.exists(path):
+def return_path_if_exists(path: str, abs: bool=False) -> str:
+	if os.path.exists(path):
 		return os.path.abspath(path) if abs else path
 	else:
 		raise FileNotFoundError(f"Path {path} does not exist.")
@@ -65,7 +63,7 @@ ref_path = return_path_if_exists("../../data/ref/Homo_sapiens_assembly38.fasta",
 
 ## PRJEB8754
 vcf_paths = sorted([os.path.abspath(path) for path in glob.glob("../../vcf/PRJEB8754/vcf_filtered_pass-orient-pos-sb-ad/*/*.vcf")])
-filtered_outdir = os.path.abspath("../PRJEB8754/vcf_filtered_pass-orient-pos-sb-ad")
+filtered_outdir = os.path.abspath("../PRJEB8754/filtered_pass-orient-pos-sb-ad")
 bam_dir = "../../data/PRJEB8754/bam_dup-unmarked"
 
 # skip non FFPE vcfs
@@ -80,43 +78,9 @@ for vcf_path in vcf_paths:
 	create_filtering_scripts(models, vcf_path, bam_path, filtered_outdir, sample_name, ref_path)
 
 
-## SRP044740
-vcf_paths = sorted([os.path.abspath(path) for path in glob.glob("../../vcf/SRP044740/vcf_filtered_pass_orientation/*/*.vcf")])
-filtered_outdir = os.path.abspath("../SRP044740/vcf_filtered_pass_orientation")
-bam_dir = "../../data/SRP044740/bam"
-
-# skip non FFPE vcfs
-for vcf_path in vcf_paths:
-	if "FROZ" in vcf_path:
-		continue
-	
-	vcf_filename = os.path.basename(vcf_path)
-	sample_name = vcf_filename.removesuffix(".vcf")
-	
-	bam_path = return_path_if_exists(f"{bam_dir}/{sample_name}/{sample_name}.bam", abs=True)
-	create_filtering_scripts(models, vcf_path, bam_path, filtered_outdir, sample_name, ref_path)
-
-
-## SRP065941
-vcf_paths = sorted([os.path.abspath(path) for path in glob.glob("../../vcf/SRP065941/vcf_filtered_pass_orientation/*/*.vcf")])
-filtered_outdir = os.path.abspath("../SRP065941/vcf_filtered_pass_orientation")
-bam_dir = "../../data/SRP065941/bam"
-
-# skip non FFPE vcfs
-for vcf_path in vcf_paths:
-	if "frozen" in vcf_path:
-		continue
-	
-	vcf_filename = os.path.basename(vcf_path)
-	sample_name = vcf_filename.removesuffix(".vcf")
-	
-	bam_path = return_path_if_exists(f"{bam_dir}/{sample_name}/{sample_name}.bam", abs=True)
-	create_filtering_scripts(models, vcf_path, bam_path, filtered_outdir, sample_name, ref_path)
-
-
 ## PRJEB44073
 vcf_paths = sorted([os.path.abspath(path) for path in glob.glob("../../vcf/PRJEB44073/vcf_filtered_pass_orientation/*/*.vcf")])
-filtered_outdir = os.path.abspath("../PRJEB44073/vcf_filtered_pass_orientation")
+filtered_outdir = os.path.abspath("../PRJEB44073/filtered_pass_orientation")
 bam_dir = "../../data/PRJEB44073/bam"
 
 annot = pl.read_csv("../../annot/PRJEB44073/sample-info_stage2.tsv", separator = "\t")
@@ -134,3 +98,39 @@ for vcf_path in vcf_paths:
 	create_filtering_scripts(models, vcf_path, bam_path, filtered_outdir, sample_name, ref_path)
 	
 print("All filtering scripts created.")
+
+
+## SRP044740
+vcf_paths = sorted([os.path.abspath(path) for path in glob.glob("../../vcf/SRP044740/vcf_filtered_pass_orientation/*/*.vcf")])
+filtered_outdir = os.path.abspath("../SRP044740/filtered_pass_orientation")
+bam_dir = "../../data/SRP044740/bam"
+
+# skip non FFPE vcfs
+for vcf_path in vcf_paths:
+	if "FROZ" in vcf_path:
+		continue
+	
+	vcf_filename = os.path.basename(vcf_path)
+	sample_name = vcf_filename.removesuffix(".vcf")
+	
+	bam_path = return_path_if_exists(f"{bam_dir}/{sample_name}.bam", abs=True)
+	create_filtering_scripts(models, vcf_path, bam_path, filtered_outdir, sample_name, ref_path)
+
+
+## SRP065941
+vcf_paths = sorted([os.path.abspath(path) for path in glob.glob("../../vcf/SRP065941/vcf_filtered_pass_orientation/*/*.vcf")])
+filtered_outdir = os.path.abspath("../SRP065941/filtered_pass_orientation")
+bam_dir = "../../data/SRP065941/bam"
+
+# skip non FFPE vcfs
+for vcf_path in vcf_paths:
+	if "frozen" in vcf_path:
+		continue
+	
+	vcf_filename = os.path.basename(vcf_path)
+	sample_name = vcf_filename.removesuffix(".vcf")
+	
+	bam_path = return_path_if_exists(f"{bam_dir}/{sample_name}/{sample_name}.bam", abs=True)
+	create_filtering_scripts(models, vcf_path, bam_path, filtered_outdir, sample_name, ref_path)
+
+	
