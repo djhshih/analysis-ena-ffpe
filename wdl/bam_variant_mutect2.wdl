@@ -107,7 +107,7 @@ task intervals_split {
     }
 
     runtime {
-        docker: runtime_params.gatk_docker
+        # docker: runtime_params.gatk_docker
         bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " HDD"
@@ -203,7 +203,6 @@ task bam_mutect2 {
             normal_command_line="-I ~{normal_bam} -normal `cat normal_name.txt`"
         fi
 
-            # --disable-read-filter NotDuplicateReadFilter \
         gatk --java-options "-Xmx~{command_mem}m -XX:+UseSerialGC" Mutect2 \
             -R ~{ref_fasta} \
             $tumor_command_line \
@@ -242,7 +241,7 @@ task bam_mutect2 {
     >>>
 
     runtime {
-        docker: gatk_docker
+        # docker: gatk_docker
         bootDiskSizeGb: 12
         memory: machine_mem + " MB"
         disks: "local-disk " + select_first([disk_space, 100]) + if use_ssd then " SSD" else " HDD"
@@ -285,7 +284,7 @@ task orientation_model_learn {
     }
 
     runtime {
-        docker: runtime_params.gatk_docker
+        # docker: runtime_params.gatk_docker
         bootDiskSizeGb: runtime_params.boot_disk_size
         memory: machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " HDD"
@@ -299,6 +298,7 @@ task orientation_model_learn {
     }
 
 }
+
 
 task bam_outs_merge {
     input {
@@ -329,7 +329,7 @@ task bam_outs_merge {
     >>>
 
     runtime {
-        docker: runtime_params.gatk_docker
+        # docker: runtime_params.gatk_docker
         bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + select_first([disk_space, runtime_params.disk]) + " HDD"
@@ -363,7 +363,7 @@ task pileup_summaries_merge {
     }
 
     runtime {
-        docker: runtime_params.gatk_docker
+        # docker: runtime_params.gatk_docker
         bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " HDD"
@@ -395,7 +395,7 @@ task pileups_calculate_contamination {
     }
 
     runtime {
-        docker: runtime_params.gatk_docker
+        # docker: runtime_params.gatk_docker
         bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " HDD"
@@ -431,7 +431,7 @@ task vcfs_merge {
     }
 
     runtime {
-        docker: runtime_params.gatk_docker
+        # docker: runtime_params.gatk_docker
         bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " HDD"
@@ -492,7 +492,7 @@ task vcf_filter {
     }
 
     runtime {
-        docker: runtime_params.gatk_docker
+        # docker: runtime_params.gatk_docker
         bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + select_first([disk_space, runtime_params.disk]) + " HDD"
@@ -524,7 +524,7 @@ task stats_merge {
     }
 
     runtime {
-        docker: runtime_params.gatk_docker
+        # docker: runtime_params.gatk_docker
         bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " HDD"
@@ -655,7 +655,7 @@ task vcf_funcotator {
      >>>
 
     runtime {
-        docker: runtime_params.gatk_docker
+        # docker: runtime_params.gatk_docker
         bootDiskSizeGb: runtime_params.boot_disk_size
         memory: runtime_params.machine_mem + " MB"
         disks: "local-disk " + select_first([disk_space, runtime_params.disk]) + " HDD"
@@ -718,7 +718,7 @@ task bam_alignment_artifacts_filter {
     }
 
     runtime {
-        docker: runtime_params.gatk_docker
+        # docker: runtime_params.gatk_docker
         bootDiskSizeGb: runtime_params.boot_disk_size
         memory: machine_mem + " MB"
         disks: "local-disk " + runtime_params.disk + " HDD"
@@ -797,6 +797,9 @@ workflow bam_variant_mutect2 {
       Int learn_read_orientation_mem = 8000
       Int filter_alignment_artifacts_mem = 9000
 
+      # Memory in GB for each Mutect2 scatter job
+      Int? mutect2_scatter_mem_gb
+
       # Use as a last resort to increase the disk given to every task in case of ill behaving data
       Int? emergency_extra_disk
 
@@ -837,10 +840,13 @@ workflow bam_variant_mutect2 {
 
     String output_vcf_name = output_basename + ".vcf"
 
-    Runtime standard_runtime = {"gatk_docker": gatk_docker, "gatk_override": gatk_override,
+    Runtime standard_runtime = {
+            "gatk_docker": gatk_docker, 
+            "gatk_override": gatk_override,
             "max_retries": max_retries_or_default, "preemptible": preemptible_or_default, "cpu": small_task_cpu,
             "machine_mem": small_task_mem * 1000, "command_mem": small_task_mem * 1000 - 500,
-            "disk": small_task_disk + disk_pad, "boot_disk_size": boot_disk_size}
+            "disk": small_task_disk + disk_pad, "boot_disk_size": boot_disk_size
+            }
 
 
     Int m2_output_size = tumor_bam_size / scatter_count
@@ -885,7 +891,8 @@ workflow bam_variant_mutect2 {
                 gga_vcf_idx = gga_vcf_idx,
                 gatk_override = gatk_override,
                 gatk_docker = gatk_docker,
-                disk_space = m2_per_scatter_size
+                disk_space = m2_per_scatter_size,
+				mem = mutect2_scatter_mem_gb
         }
     }
 

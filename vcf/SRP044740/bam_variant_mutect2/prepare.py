@@ -54,7 +54,6 @@ base = {
 	'bam_variant_mutect2.run_orientation_bias_mixture_model_filter': True,
 }
 
-# Citations: https://gatk.broadinstitute.org/hc/en-us/community/posts/12450796994459-Asking-for-advice-on-Mutect2-calling-in-somatic-but-amplicon-data
 # ----
 
 for i in range(pheno.shape[0]):
