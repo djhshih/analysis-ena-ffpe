@@ -3,15 +3,19 @@ library(io)
 
 ## Dataset specific
 eval_dirs = c(
-		# "PRJEB8754/vcf_pass-orient-pos-sb_ad_filtered/roc-prc-auc/precrec",
-		# "SRP044740/vcf_filtered_pass_orientation/roc-prc-auc/precrec",
-		# "SRP065941/vcf_filtered_pass_orientation/roc-prc-auc/precrec",
-		"PRJEB44073/vcf_filtered_pass_orientation/roc-prc-auc/precrec"
-	)
+	"PRJEB8754/filtered_pass-orient-pos-sb-ad_micr1234-excluded",
+	"PRJEB44073/filtered_pass-orientation-dp10_micr1234-excluded",
+	"SRP044740/filtered_pass-orientation-dp10_micr1234-excluded",
+	"SRP065941/filtered_pass-orientation-dp10_micr1234-excluded"
+)
 
 for (eval_dir in eval_dirs){
 	## List name of models that were evaluated. 
-	models <- c("all-models", "mobsnvf", "vafsnvf", "sobdetector", "gatk-obmm", "microsec")
+	models <- c("all-models", "mobsnvf", "vafsnvf", "sobdetector", "gatk-obmm", "microsec", "ideafix", "ffpolish")
+
+	message(cat("\tCombining results for: ", eval_dir))
+
+	eval_dir <- file.path(eval_dir, "roc-prc-auc/precrec")
 
 	## Combine the AUC table for each sample and overall eval i.e all sample, liver samples, colon samples
 	message("Combining AUCs")
