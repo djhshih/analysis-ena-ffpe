@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 import glob
 import polars as pl
@@ -14,18 +15,18 @@ def check_res_existence(path: str, abs = False, halt: bool = False) -> str | Non
 			return None
 
 
-def filter_micr_artifacts(ffpe_filter: str, dataset: str, variant_sets: dict, sample: str, micr_artifacts: pl.DataFrame, res_suffix: str = ".snv") -> pl.DataFrame:
+def filter_micr_artifacts(ffpe_filter: str, dataset: str, target_set_name: str, new_set_name: str, sample_name: str, micr_artifacts: pl.DataFrame, res_suffix: str = ".snv") -> pl.DataFrame:
 
 	print(f"\tFiltering MICR artifacts from {ffpe_filter.upper()} results...")
-	ffpe_filter_res_path = check_res_existence(f"{dataset}/{variant_sets[dataset]}/{ffpe_filter.lower()}/{sample}/{sample}.{ffpe_filter.lower()}{res_suffix}")
+	ffpe_filter_res_path = check_res_existence(f"{dataset}/{target_set_name}/{ffpe_filter.lower()}/{sample_name}/{sample_name}.{ffpe_filter.lower()}{res_suffix}")
  
 	if ffpe_filter_res_path is not None:
-		ffpe_filter_res = pl.read_csv(ffpe_filter_res_path, separator="\t")
+		ffpe_filter_res = pl.read_csv(ffpe_filter_res_path, separator="\t", infer_schema_length=1000)
 		ffpe_filter_res_micr_filtered = ffpe_filter_res.join(micr_artifacts, on =["chrom", "pos", "ref", "alt"], how="anti")
 
-		output_dir = f"{dataset}/{variant_sets[dataset].replace("filtered", "filtered_micr")}/{ffpe_filter.lower()}/{sample}"
+		output_dir = f"{dataset}/{new_set_name}/{ffpe_filter.lower()}/{sample_name}"
 		os.makedirs(output_dir, exist_ok=True)
-		output_path = f"{output_dir}/{sample}.{ffpe_filter.lower()}{res_suffix}"
+		output_path = f"{output_dir}/{sample_name}.{ffpe_filter.lower()}{res_suffix}"
 
 		ffpe_filter_res_micr_filtered.write_csv(output_path, separator="\t")
 		print(f"\t\tMICR filtered {ffpe_filter.upper()} results written to: {output_path}")
@@ -38,7 +39,7 @@ def filter_micr_artifacts(ffpe_filter: str, dataset: str, variant_sets: dict, sa
 
 		summary = pl.DataFrame({
 			"dataset": dataset,
-			"sample": sample,
+			"sample_name": sample_name,
 			"ffpe_filter" : f"{ffpe_filter.lower()}",
 			"total_variants": variants_before,
 			"micr_artifacts_removed": artifact_variants,
@@ -52,45 +53,73 @@ def filter_micr_artifacts(ffpe_filter: str, dataset: str, variant_sets: dict, sa
 		return pl.DataFrame()
 
 
-## Setup
-variant_sets = {
-	"PRJEB8754" : "vcf_pass-orient-pos-sb_ad_filtered",
-	"PRJEB44073" : "vcf_filtered_pass_orientation",
-	"SRP044740" : "vcf_filtered_pass_orientation",
-	"SRP065941" : "vcf_filtered_pass_orientation",
-}
-
-datasets = list(variant_sets.keys())
-
 ## Filter MICR artifacts from each dataset
 
-for dataset in datasets:
+def filter_sample_set(dataset: str, source_set_name: str, target_set_name:str, new_set_name: str, msec_filter_col:str) -> None:
 
-	microsec_paths = glob.glob(f"{dataset}/{variant_sets[dataset]}/microsec/outputs/*/*.microsec.tsv")
+	microsec_paths = glob.glob(f"{dataset}/{source_set_name}/microsec/*/*.microsec.tsv")
 
 	micr_filtering_summaries = []
 
 	for i, path in enumerate(microsec_paths):
-		sample = os.path.basename(path).replace(".microsec.tsv", "")
-		print(f"\n{i+1}. Processing... Dataset: {dataset}, Sample: {sample}")
+		sample_name = os.path.basename(path).replace(".microsec.tsv", "")
+		print(f"\n{i+1}. Processing... Dataset: {dataset}, Sample: {sample_name}")
 
 		microsec = pl.read_csv(path, separator="\t", infer_schema_length=1000).rename({"Chr": "chrom"}).rename(lambda x: x.lower())
-		microsec_artifacts = microsec.filter(pl.col("msec_filter_all") == "Artifact suspicious")
+		microsec_artifacts = microsec.filter(pl.col(msec_filter_col) == "Artifact suspicious")
 
-		mobsnvf_summary = filter_micr_artifacts("mobsnvf", dataset, variant_sets, sample, microsec_artifacts)
+		mobsnvf_summary = filter_micr_artifacts("mobsnvf", dataset, target_set_name, new_set_name, sample_name, microsec_artifacts)
 		micr_filtering_summaries.append(mobsnvf_summary)
 	
-		sobdetector_summary = filter_micr_artifacts("sobdetector", dataset, variant_sets, sample, microsec_artifacts)
+		sobdetector_summary = filter_micr_artifacts("sobdetector", dataset, target_set_name, new_set_name, sample_name, microsec_artifacts)
 		micr_filtering_summaries.append(sobdetector_summary)
 
-		vafsnvf_summary = filter_micr_artifacts("vafsnvf", dataset, variant_sets, sample, microsec_artifacts)
+		vafsnvf_summary = filter_micr_artifacts("vafsnvf", dataset, target_set_name, new_set_name, sample_name, microsec_artifacts)
 		micr_filtering_summaries.append(vafsnvf_summary)
 	
-		ideafix_summary = filter_micr_artifacts("ideafix", dataset, variant_sets, sample, microsec_artifacts, res_suffix=".tsv")
+		ffpolish_summary = filter_micr_artifacts("ffpolish", dataset, target_set_name, new_set_name, sample_name, microsec_artifacts, res_suffix=".tsv")
+		micr_filtering_summaries.append(ffpolish_summary)
+
+		ideafix_summary = filter_micr_artifacts("ideafix", dataset, target_set_name, new_set_name, sample_name, microsec_artifacts, res_suffix=".tsv")
 		micr_filtering_summaries.append(ideafix_summary)
 
+		gatk_summary = filter_micr_artifacts("gatk-obmm", dataset, target_set_name, new_set_name, sample_name, microsec_artifacts, res_suffix=".tsv")
+		micr_filtering_summaries.append(gatk_summary)
+
 	micr_filtering_summaries_df = pl.concat(micr_filtering_summaries, how="diagonal_relaxed")
-	micr_filtering_summaries_df.write_csv(f"{dataset}/{variant_sets[dataset].replace("filtered", "filtered_micr")}/micr_filtering_summary.tsv", separator="\t")
+	micr_filtering_summaries_df.write_csv(f"{dataset}/{new_set_name}/micr_filtering_summary.tsv", separator="\t")
 	
+
+filter_sample_set(
+    dataset = "PRJEB8754",
+    source_set_name = "filtered_pass-orient-pos-sb-ad",
+    target_set_name = "filtered_pass-orient-pos-sb-ad-blacklist",
+    new_set_name = "filtered_pass-orient-pos-sb-ad-blacklist_micr1234-excluded", 
+    msec_filter_col = "msec_filter_1234"
+)
+
+filter_sample_set(
+    dataset = "PRJEB44073",
+    source_set_name = "filtered_pass-orientation-dp10", 
+    target_set_name = "filtered_pass-orientation-dp10-blacklist",
+    new_set_name = "filtered_pass-orientation-dp10-blacklist_micr1234-excluded", 
+    msec_filter_col = "msec_filter_1234"
+)
+
+filter_sample_set(
+    dataset = "SRP044740",
+    source_set_name = "filtered_pass-orientation-dp10", 
+    target_set_name = "filtered_pass-orientation-dp10-blacklist",
+    new_set_name = "filtered_pass-orientation-dp10-blacklist_micr1234-excluded", 
+    msec_filter_col = "msec_filter_1234"
+)
+
+filter_sample_set(
+    dataset = "SRP065941",
+    source_set_name = "filtered_pass-orientation-dp10", 
+    target_set_name = "filtered_pass-orientation-dp10-blacklist",
+    new_set_name = "filtered_pass-orientation-dp10-blacklist_micr1234-excluded", 
+    msec_filter_col = "msec_filter_1234"
+)
 
 
