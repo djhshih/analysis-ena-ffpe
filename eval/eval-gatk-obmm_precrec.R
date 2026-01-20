@@ -197,8 +197,8 @@ evaluate_sample_set(
 	ffpe_tumoral = ffpe_tumoral,
 	frozen_tumoral = frozen_tumoral,
 	model_name = model_name,
-	ff_vcf_dir = "../vcf/PRJEB8754/vcf_filtered_pass-orient-pos-sb-ad",
-	ffpe_snvf_dir = "../ffpe-snvf/PRJEB8754/filtered_pass-orient-pos-sb-ad_micr1234-excluded"
+	ff_vcf_dir = "../vcf/PRJEB8754/vcf_filtered_pass-orient-pos-sb-ad-blacklist",
+	ffpe_snvf_dir = "../ffpe-snvf/PRJEB8754/filtered_pass-orient-pos-sb-ad-blacklist_micr1234-excluded"
 )
 
 
@@ -217,8 +217,8 @@ evaluate_sample_set(
 	ffpe_tumoral = ffpe_tumoral,
 	frozen_tumoral = frozen_tumoral,
 	model_name = model_name,
-	ff_vcf_dir = "../vcf/PRJEB44073/vcf_filtered_pass-orientation-dp10",
-	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-dp10_micr1234-excluded"
+	ff_vcf_dir = "../vcf/PRJEB44073/vcf_filtered_pass-orientation-dp10-blacklist",
+	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-dp10-blacklist_micr1234-excluded"
 )
 
 
@@ -237,8 +237,8 @@ evaluate_sample_set(
 	ffpe_tumoral = ffpe_tumoral,
 	frozen_tumoral = frozen_tumoral,
 	model_name = model_name,
-	ff_vcf_dir = "../vcf/SRP044740/vcf_filtered_pass-orientation-dp10",
-	ffpe_snvf_dir = "../ffpe-snvf/SRP044740/filtered_pass-orientation-dp10_micr1234-excluded"
+	ff_vcf_dir = "../vcf/SRP044740/vcf_filtered_pass-orientation-dp10-blacklist",
+	ffpe_snvf_dir = "../ffpe-snvf/SRP044740/filtered_pass-orientation-dp10-blacklist_micr1234-excluded"
 )
 
 
@@ -256,6 +256,6 @@ evaluate_sample_set(
 	ffpe_tumoral = ffpe_tumoral,
 	frozen_tumoral = frozen_tumoral,
 	model_name = model_name,
-	ff_vcf_dir = "../vcf/SRP065941/vcf_filtered_pass-orientation-dp10",
-	ffpe_snvf_dir = "../ffpe-snvf/SRP065941/filtered_pass-orientation-dp10_micr1234-excluded"
+	ff_vcf_dir = "../vcf/SRP065941/vcf_filtered_pass-orientation-dp10-blacklist",
+	ffpe_snvf_dir = "../ffpe-snvf/SRP065941/filtered_pass-orientation-dp10-blacklist_micr1234-excluded"
 )

@@ -3,10 +3,10 @@ library(io)
 
 ## Dataset specific
 eval_dirs = c(
-	"PRJEB8754/filtered_pass-orient-pos-sb-ad_micr1234-excluded",
-	"PRJEB44073/filtered_pass-orientation-dp10_micr1234-excluded",
-	"SRP044740/filtered_pass-orientation-dp10_micr1234-excluded",
-	"SRP065941/filtered_pass-orientation-dp10_micr1234-excluded"
+	"PRJEB8754/filtered_pass-orient-pos-sb-ad-blacklist_micr1234-excluded",
+	"PRJEB44073/filtered_pass-orientation-dp10-blacklist_micr1234-excluded",
+	"SRP044740/filtered_pass-orientation-dp10-blacklist_micr1234-excluded",
+	"SRP065941/filtered_pass-orientation-dp10-blacklist_micr1234-excluded"
 )
 
 for (eval_dir in eval_dirs){

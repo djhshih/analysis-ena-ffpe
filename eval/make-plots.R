@@ -2,10 +2,10 @@
 source("../common-ffpe-snvf/R/plot.R")
 
 dset_dirs <- c(
-	"PRJEB8754/filtered_pass-orient-pos-sb-ad_micr1234-excluded",
-	"PRJEB44073/filtered_pass-orientation-dp10_micr1234-excluded",
-	"SRP044740/filtered_pass-orientation-dp10_micr1234-excluded",
-	"SRP065941/filtered_pass-orientation-dp10_micr1234-excluded"
+	"PRJEB8754/filtered_pass-orient-pos-sb-ad-blacklist_micr1234-excluded",
+	"PRJEB44073/filtered_pass-orientation-dp10-blacklist_micr1234-excluded",
+	"SRP044740/filtered_pass-orientation-dp10-blacklist_micr1234-excluded",
+	"SRP065941/filtered_pass-orientation-dp10-blacklist_micr1234-excluded"
 )
 
 # dset_author <- c(
@@ -31,7 +31,7 @@ for (dir in dset_dirs){
 	message(sprintf("Processing dataset: %s", dset))
 
 	## Set output directory
-	outdir_root <- file.path(dir, "plots_publication")
+	outdir_root <- file.path(dir, "plots")
 
 	## Make a vector with paths to all the precrec eval objects
 	roc_coord_paths <- sort(list.files(file.path(dir, "roc-prc-auc/precrec"), pattern = "all-models_roc_coordinates.tsv", recursive = TRUE, full.names = TRUE))
