@@ -5,8 +5,10 @@ import vcformer
 from tqdm import tqdm
 import seaborn as sns
 
+## Datasets without matched normal
 datasets = ["PRJEB44073", "SRP044740"]
 
+## Using the latest variant set with DP>10 and blacklist filtering performed
 dset_vset = {
     "SRP044740": "vcf_filtered_pass-orientation-dp10-blacklist",
     "PRJEB44073":  "vcf_filtered_pass-orientation-dp10-blacklist"
@@ -30,6 +32,7 @@ for dataset in datasets:
 				pl.col("ad").list.get(0).alias("ref_ad"),
 				pl.col("ad").list.get(1).alias("alt_ad"),
 				pl.lit(sample_name).alias("sample_name"),
+                ## Convert negative log population allele frequncies to linear scale
 				(10 ** -pl.col("popaf")).alias("popaf")
 			)
 			.drop("id", "qual", "phased", "ad")
@@ -45,12 +48,5 @@ for dataset in datasets:
 	all_variants_df.write_parquet(f"{dataset}/{dataset}_all-variants_{dset_vset[dataset].removeprefix("vcf_")}.parquet")
 
 
-# %% [markdown]
-# ### Explore
-
-ax = sns.histplot(vcf["popaf"], bins=100)
-ax.set_yscale("log")
-
-vcf.filter(vcf["popaf"] > 0.02/100)
 
 
