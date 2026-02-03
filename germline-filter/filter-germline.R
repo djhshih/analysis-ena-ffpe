@@ -35,7 +35,7 @@ for (variant_set in dataset_variants) {
 
 	message(sprintf("Processing variants from %s", variant_set))
 	dataset <- basename(dirname(variant_set))
-	finename <- basename(variant_set)
+	filename <- basename(variant_set)
 	
 	mut <- read_parquet(variant_set)
 	
@@ -64,7 +64,16 @@ for (variant_set in dataset_variants) {
 	mut <- mutate(mut, common = (!is.na(popaf) & popaf >= clin_thresh))
 
 	mut_clean <- mut[mut$pass & !mut$common, ]
-	write_parquet(mut_clean, file.path(dataset, gsub(".parquet", "-gl.parquet", finename)))
+	write_parquet(mut_clean, file.path(dataset, gsub(".parquet", "-gl.parquet", filename)))
+
+	for (sample in unique(mut_clean$sample_name)){
+		message(sprintf("	Writing filtered sample variants: %s", sample))
+		mut_s <- mut_clean[mut_clean$sample_name == sample,  c("chrom", "pos", "ref", "alt")]
+
+		outdir <- file.path(dataset, "filtered_pass-orientation-dp10-blacklist-gl", sample)
+		dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
+		write.table(mut_s, file.path(outdir, sprintf("%s.tsv", sample)), sep="\t", row.names=FALSE, col.names=FALSE, quote=FALSE)
+	}
 
 }
 
