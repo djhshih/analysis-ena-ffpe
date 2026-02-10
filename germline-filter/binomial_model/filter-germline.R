@@ -70,7 +70,7 @@ for (variant_set in dataset_variants) {
 		message(sprintf("	Writing filtered sample variants: %s", sample))
 		mut_s <- mut_clean[mut_clean$sample_name == sample,  c("chrom", "pos", "ref", "alt")]
 
-		outdir <- file.path(dataset, "filtered_pass-orientation-dp10-blacklist-gl", sample)
+		outdir <- file.path("..", dataset, "filtered_pass-orientation-dp10-blacklist-gl", sample)
 		dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 		write.table(mut_s, file.path(outdir, sprintf("%s.tsv", sample)), sep="\t", row.names=FALSE, col.names=FALSE, quote=FALSE)
 	}

@@ -16,7 +16,7 @@ dset_vset = {
 
 for dataset in datasets:
 	print(f"Processing dataset: {dataset}")
-	paths = sorted(glob.glob(f"../vcf/{dataset}/{dset_vset[dataset]}/*/*.vcf"))
+	paths = sorted(glob.glob(f"../../vcf/{dataset}/{dset_vset[dataset]}/*/*.vcf"))
 
 	all_variants = []
 
@@ -45,8 +45,5 @@ for dataset in datasets:
 	os.makedirs(outdir, exist_ok=True)
 
 	all_variants_df = pl.concat(all_variants)
-	all_variants_df.write_parquet(f"{dataset}/{dataset}_all-variants_{dset_vset[dataset].removeprefix("vcf_")}.parquet")
-
-
-
+	all_variants_df.write_parquet(f"../{dataset}/{dataset}_all-variants_{dset_vset[dataset].removeprefix("vcf_")}.parquet")
 
