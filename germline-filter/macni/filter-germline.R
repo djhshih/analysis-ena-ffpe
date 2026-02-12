@@ -5,7 +5,7 @@ source("../../common-ffpe-snvf/R/macni_somatic.R")
 ## Filtering Function
 process_dataset <- function(dataset, variant_set, new_variant_set){
 
-	message("Processing dataset: ", dataset)
+	message("Processing Dataset: ", dataset, " | Variant Set: ", variant_set)
 	vcf_paths = Sys.glob(sprintf("../../vcf/%s/%s/*/*.vcf", dataset, variant_set))
 
 	for (i in seq_along(vcf_paths)){
@@ -26,20 +26,18 @@ process_dataset <- function(dataset, variant_set, new_variant_set){
 ## Filter Datasets
 process_dataset(
 	dataset = "PRJEB8754",
-	variant_set = "vcf_filtered_pass-orient-pos-sb-ad-blacklist_dup-unmarked",
+	variant_set = "filtered_pass-orient-pos-sb-ad-blacklist_dup-unmarked",
 	new_variant_set = "filtered_pass-orient-pos-sb-ad-blacklist-macni_dup-unmarked"
 )
 
 process_dataset(
 	dataset = "PRJEB44073",
-	variant_set = "vcf_filtered_pass-orientation-dp10-blacklist",
-	new_variant_set = "filtered_pass-orientation-dp10-blacklist-macni"
+	variant_set = "filtered_pass-orientation-dp20-blacklist",
+	new_variant_set = "filtered_pass-orientation-dp20-blacklist-macni"
 )
 
 process_dataset(
 	dataset = "SRP044740",
-	variant_set = "vcf_filtered_pass-orientation-dp10-blacklist",
-	new_variant_set = "filtered_pass-orientation-dp10-blacklist-macni"
+	variant_set = "filtered_pass-orientation-dp20-blacklist",
+	new_variant_set = "filtered_pass-orientation-dp20-blacklist-macni"
 )
-
-
