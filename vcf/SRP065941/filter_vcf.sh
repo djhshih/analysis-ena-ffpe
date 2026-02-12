@@ -2,13 +2,13 @@
 
 set -euo pipefail
 
-root_outdir="vcf_filtered_pass_orientation"
+root_outdir="filtered_pass_orientation"
 mkdir -p $root_outdir
 
 filter_expression='(FILTER="PASS" | FILTER="orientation")'
 echo -e "Filtering Expression: $filter_expression"
 
-for vcf in vcf_filtermutectcalls_obmm_unfiltered/*/*.vcf; do
+for vcf in raw_filtermutectcalls-obmm/*/*.vcf; do
     
     filename=$(basename $vcf)
     sample_name=${filename%%.*}
