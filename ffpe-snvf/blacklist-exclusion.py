@@ -2,33 +2,13 @@
 import polars as pl
 import os
 import glob
-from tqdm import tqdm 
+from tqdm import tqdm
+import sys
 
+# Local Dependencies
 repo_root = ".."
-
-## Functions
-def read_variants(path:str, columns: list = ["#CHROM", "POS", "REF", "ALT"]) -> pl.DataFrame:
-	"""
-	Reads Variants from a VCF file into a Polars DataFrame.
-	By default, only reads essential columns.
-	Splits multi-allelic variants into separate rows.
-	Can be extended to read additional columns as needed or
-	read custom variant files with similar structure.
-	
-	:param path: Path to VCF file
-	:type path: str
-	:param columns: List of column names to read from the VCF file. Defaults to ["#CHROM", "POS", "REF", "ALT"].
-	:type columns: list
-	:return: DataFrame containing the variants
-	:rtype: DataFrame
-	"""
-	variants = (
-		pl.read_csv(path, separator="\t", comment_prefix="##", infer_schema_length=1000, columns=columns)
-		.rename(lambda x: x.lstrip("#").lower())
-		.with_columns(pl.col("alt").str.split(","))
-		.explode("alt")
-	)
-	return variants
+sys.path.append(f"{repo_root}/common-ffpe-snvf/python")
+from common import read_variants
 
 def get_filtering_summary(
     sample_name: str, 
@@ -50,7 +30,7 @@ def get_filtering_summary(
         "sample_name" : sample_name,
         "model" : model,
         "n_var_original" : n_orig,
-        "n_var_target_vcf" : n_target,
+        "n_var_target_set" : n_target,
         "n_var_filtered_snvf": n_filtered,
         "n_var_removed" : n_orig - n_filtered,
         "pct_removed" : ((n_orig - n_filtered) / n_orig) * 100
@@ -58,24 +38,36 @@ def get_filtering_summary(
 
     return summary
 
+def get_ffpe_snvf_paths(dataset: str, variant_set: str) -> list:
+	"""
+	Returns the path for each FFPE SNVF model's
+	results for a specified variant set and dataset
+	"""
+
+	paths = sorted(
+		glob.glob(f"{repo_root}/ffpe-snvf/{dataset}/{variant_set}/*/*/*.mobsnvf.snv") +
+		glob.glob(f"{repo_root}/ffpe-snvf/{dataset}/{variant_set}/*/*/*.vafsnvf.snv") +
+		glob.glob(f"{repo_root}/ffpe-snvf/{dataset}/{variant_set}/*/*/*.sobdetector.snv") +
+		glob.glob(f"{repo_root}/ffpe-snvf/{dataset}/{variant_set}/*/*/*.ideafix.tsv") +
+		glob.glob(f"{repo_root}/ffpe-snvf/{dataset}/{variant_set}/*/*/*.gatk-obmm.tsv") +
+		glob.glob(f"{repo_root}/ffpe-snvf/{dataset}/{variant_set}/*/*/*.ffpolish.tsv")
+	)
+
+	return paths
+
 
 ## SNVF Blacklist Filtering
 ## Wrapper Function
-def filter_dataset(dataset: str, source_var_set: str, new_var_set: str = None) -> None:
+def filter_dataset(dataset: str, source_variant_set: str, new_variant_set: str = None) -> None:
 
-	if not new_var_set:
-		new_var_set = f"{source_var_set}-blacklist"
-	vcf_dir = f"{repo_root}/vcf/{dataset}/{new_var_set}"
+	if not new_variant_set:
+		new_variant_set = f"{source_variant_set}-blacklist"
 
+	print(f"Processing Dataset: {dataset} | Variant Set: {source_variant_set}")
 
-	ffpe_snvf = (
-		glob.glob(f"{dataset}/{source_var_set}/*/*/*.ffpolish.tsv") +
-		glob.glob(f"{dataset}/{source_var_set}/*/*/*.gatk-obmm.tsv") +
-		glob.glob(f"{dataset}/{source_var_set}/*/*/*.ideafix.tsv") +
-		glob.glob(f"{dataset}/{source_var_set}/*/*/*.mobsnvf.snv") +
-		glob.glob(f"{dataset}/{source_var_set}/*/*/*.sobdetector.snv") +
-		glob.glob(f"{dataset}/{source_var_set}/*/*/*.vafsnvf.snv")
-	)
+	vcf_dir = f"{repo_root}/vcf/{dataset}/{new_variant_set}"
+
+	ffpe_snvf = get_ffpe_snvf_paths(dataset, source_variant_set)
 
 	filtering_summary = []
 
@@ -92,15 +84,15 @@ def filter_dataset(dataset: str, source_var_set: str, new_var_set: str = None) -
 
 		filtered_snvf = snvf.join(target_vars, on = ["chrom", "pos", "ref", "alt"], how="semi")
 
-		filtered_snvf_outdir = f"{dataset}/{new_var_set}/{model}/{sample_name}"
+		filtered_snvf_outdir = f"{dataset}/{new_variant_set}/{model}/{sample_name}"
 		os.makedirs(filtered_snvf_outdir, exist_ok=True)
 
 
 		sample_filtering_summary = get_filtering_summary(
 			sample_name,
 			model,
-			source_var_set,
-			new_var_set,
+			source_variant_set,
+			new_variant_set,
 			snvf,
 			target_vars,
 			filtered_snvf
@@ -109,11 +101,10 @@ def filter_dataset(dataset: str, source_var_set: str, new_var_set: str = None) -
 		filtering_summary.append(sample_filtering_summary)
 		filtered_snvf.write_csv(f"{filtered_snvf_outdir}/{fname}", separator="\t")
 
-	pl.DataFrame(filtering_summary).write_csv(f"{dataset}/{new_var_set}/blacklist-exclusion_filtering-summary.tsv", separator="\t")
+	pl.DataFrame(filtering_summary).write_csv(f"{dataset}/{new_variant_set}/blacklist-exclusion_filtering-summary.tsv", separator="\t")
 
 ### Filter specified variant set from each dataset
 filter_dataset("PRJEB8754", "filtered_pass-orient-pos-sb-ad_dup-unmarked", "filtered_pass-orient-pos-sb-ad-blacklist_dup-unmarked")
 filter_dataset("PRJEB44073", "filtered_pass-orientation-dp20")
 filter_dataset("SRP044740", "filtered_pass-orientation-dp20")
 filter_dataset("SRP065941", "filtered_pass-orientation-dp20")
-

@@ -10,6 +10,7 @@ repo_root = ".."
 sys.path.append(f"{repo_root}/common-ffpe-snvf/python")
 from common import read_variants
 
+## Functions
 def get_filtering_summary(
     sample_name: str, 
     model: str, 
@@ -30,13 +31,14 @@ def get_filtering_summary(
         "sample_name" : sample_name,
         "model" : model,
         "n_var_original" : n_orig,
-        "n_var_target_set" : n_target,
+        "n_var_target_vcf" : n_target,
         "n_var_filtered_snvf": n_filtered,
         "n_var_removed" : n_orig - n_filtered,
         "pct_removed" : ((n_orig - n_filtered) / n_orig) * 100
     }
 
     return summary
+
 
 def get_ffpe_snvf_paths(dataset: str, variant_set: str) -> list:
 	"""
@@ -55,21 +57,17 @@ def get_ffpe_snvf_paths(dataset: str, variant_set: str) -> list:
 
 	return paths
 
-## SNVF Germline Filtering
-def filter_dataset(dataset: str, source_variant_set: str, new_variant_set: str = None) -> None:
 
-	if not new_variant_set:
-		new_variant_set = f"{source_variant_set}-macni"
+def filter_dataset(dataset: str, source_variant_set: str, new_variant_set: str) -> None:
 
 	print(f"Processing Dataset: {dataset} | Variant Set: {source_variant_set}")
 
 	vcf_dir = f"{repo_root}/vcf/{dataset}/{new_variant_set}"
 
-	ffpe_snvf = get_ffpe_snvf_paths(dataset, source_variant_set)
-
+	ffpe_snvf_paths = get_ffpe_snvf_paths(dataset, source_variant_set)
 	filtering_summary = []
 
-	for path in tqdm(ffpe_snvf):
+	for path in tqdm(ffpe_snvf_paths):
 		model = path.split("/")[-3]
 		sample_name = path.split("/")[-2]
 		fname = os.path.basename(path)
@@ -77,18 +75,12 @@ def filter_dataset(dataset: str, source_variant_set: str, new_variant_set: str =
 		snvf = pl.read_csv(path, separator="\t", infer_schema_length=1000)
 		
 		target_vars_path = f"{vcf_dir}/{sample_name}/{sample_name}.vcf"
-		if not os.path.exists(target_vars_path):
-			print(f"{target_vars_path} does not exist. Likely reason is that all variants were filtered out.")
-			continue
-
 		target_vars = read_variants(target_vars_path)
 		
-
 		filtered_snvf = snvf.join(target_vars, on = ["chrom", "pos", "ref", "alt"], how="semi")
 
-		filtered_snvf_outdir = f"{dataset}/{new_variant_set}/{model}/{sample_name}"
+		filtered_snvf_outdir = f"{repo_root}/ffpe-snvf/{dataset}/{new_variant_set}/{model}/{sample_name}"
 		os.makedirs(filtered_snvf_outdir, exist_ok=True)
-
 
 		sample_filtering_summary = get_filtering_summary(
 			sample_name,
@@ -104,14 +96,29 @@ def filter_dataset(dataset: str, source_variant_set: str, new_variant_set: str =
 
 		filtered_snvf.write_csv(f"{filtered_snvf_outdir}/{fname}", separator="\t")
 
-	pl.DataFrame(filtering_summary).write_csv(f"{dataset}/{new_variant_set}/germline-exclusion_filtering-summary.tsv", separator="\t")
+	pl.DataFrame(filtering_summary).write_csv(f"{dataset}/{new_variant_set}/low-dp-exclusion_filtering-summary.tsv", separator="\t")
 
 
-
+## SNVF DP Filtering
 ### Filter specified variant set from each dataset
-filter_dataset("PRJEB44073", "filtered_pass-orientation-dp20-blacklist")
+filter_dataset(
+	dataset = "PRJEB44073", 
+    source_variant_set = "filtered_pass-orientation",
+    new_variant_set = "filtered_pass-orientation-dp20"
+)
 
-filter_dataset("SRP044740", "filtered_pass-orientation-dp20-blacklist")
 
-filter_dataset("PRJEB8754", "filtered_pass-orient-pos-sb-ad-blacklist_dup-unmarked", "filtered_pass-orient-pos-sb-ad-blacklist-macni_dup-unmarked")
+filter_dataset(
+	dataset = "SRP044740", 
+    source_variant_set = "filtered_pass-orientation",
+    new_variant_set = "filtered_pass-orientation-dp20"
+)
+
+
+filter_dataset(
+	dataset = "SRP065941", 
+    source_variant_set = "filtered_pass-orientation",
+    new_variant_set = "filtered_pass-orientation-dp20"
+)
+
 
