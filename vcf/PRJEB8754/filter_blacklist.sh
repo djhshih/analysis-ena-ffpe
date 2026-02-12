@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-root_outdir="vcf_filtered_pass-orient-pos-sb-ad-blacklist"
+root_outdir="vcf_filtered_pass-orient-pos-sb-ad-blacklist_dup-unmarked"
 mkdir -p $root_outdir
 
 blacklist_path="../../data/blacklists/master_blacklist.bed.gz"

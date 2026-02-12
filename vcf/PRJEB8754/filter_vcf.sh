@@ -2,13 +2,13 @@
 
 set -euo pipefail
 
-root_outdir="vcf_filtered_pass-orient-pos-sb-ad"
+root_outdir="filtered_pass-orient-pos-sb-ad_dup-unmarked"
 mkdir -p $root_outdir
 
-filter_expression='(FILTER="PASS" | FILTER="strand_bias" | FILTER="orientation" | FILTER="position" | FILTER="strand_bias;orientation" | FILTER="strand_bias;position" | FILTER="orientation;position" | FILTER="strand_bias;orientation;position") & (FMT/AD[0:0] + FMT/AD[0:1] >= 10 & FMT/AD[0:1] >=3)'
+filter_expression='(FILTER="PASS" | FILTER="strand_bias" | FILTER="orientation" | FILTER="position" | FILTER="strand_bias;orientation" | FILTER="strand_bias;position" | FILTER="orientation;position" | FILTER="strand_bias;orientation;position") & (FMT/DP >= 10 & FMT/AD[0:1] >=3)'
 echo -e "Filtering Expression: $filter_expression"
 
-for vcf in vcf_filtermutectcalls_obmm_unfiltered_default-annot/*/*.vcf; do
+for vcf in filtermutectcalls_obmm_unfiltered_dup-unmarked/*/*.vcf; do
     
     filename=$(basename $vcf)
     sample_name=${filename%%.*}
