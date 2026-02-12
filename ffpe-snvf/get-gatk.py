@@ -15,10 +15,10 @@ def read_variants(path:str, columns: list = ["#CHROM", "POS", "REF", "ALT", "FIL
 
 ## VCFs from each dataset to use for getting gatk obmm results
 dset_vcf = {
-	"PRJEB8754" : "vcf_filtered_pass-orient-pos-sb-ad",
-	"PRJEB44073" : "vcf_filtered_pass-orientation-dp10",
-	"SRP044740" : "vcf_filtered_pass-orientation-dp10",
-	"SRP065941" : "vcf_filtered_pass-orientation-dp10"
+	"PRJEB8754" : "filtered_pass-orient-pos-sb-ad-blacklist-macni_dup-unmarked",
+	"PRJEB44073" : "filtered_pass-orientation-dp20-blacklist-macni",
+	"SRP044740" : "filtered_pass-orientation-dp20-blacklist-macni",
+	"SRP065941" : "filtered_pass-orientation-dp20-blacklist"
 }
 
 ## Process each datasets
@@ -41,5 +41,4 @@ for i, dset in enumerate(dset_vcf.keys()):
 		os.makedirs(outdir, exist_ok=True)
 
 		variants.write_csv(f"{outdir}/{sample_name}.gatk-obmm.tsv", separator="\t")
-
 
