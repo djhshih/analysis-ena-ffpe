@@ -34,8 +34,12 @@ source("../common-ffpe-snvf/R/eval.R")
 get_truth_set <- function(case_id, matched_ff_vcf_paths, outdir = main.outdir) {
 	truth_set_dir <- file.path(outdir, "truth_sets")
 	dir.create(truth_set_dir, showWarnings = FALSE, recursive = TRUE)
-	truth_set_path <- file.path(truth_set_dir, paste(basename(matched_ff_vcf_paths), collapse = "_"), sprintf("%s.tsv", case_id))
-
+	truth_set_path <- file.path(
+		truth_set_dir, 
+		paste(sapply(strsplit(basename(matched_ff_vcf_paths), "\\."), `[`, 1), collapse = "_"), 
+		sprintf("%s.tsv", case_id)
+	)
+	
 	if (file.exists(truth_set_path)){
 		message(cat("\tGround truth set exists, reading from file"))
 		truth <- qread(truth_set_path)
@@ -109,35 +113,30 @@ evaluate_sample_set <- function(
 		variant_set <- basename(ffpe_snvf_dir)
 		outdir_root <- file.path(dataset, variant_set)
 
-		## Getting matched FF metadata by matching case ID and workflow type i.e variant caller
-		matched_ff_annot <- frozen_tumoral[(frozen_tumoral[[case_id_col]] == case_id), ]
-		matched_ff_sample_names <- matched_ff_annot[[sample_id_col]]
-		matched_ff_vcf_paths <- file.path(ff_vcf_dir, matched_ff_sample_names, sprintf("%s.vcf", matched_ff_sample_names))
-
 		snvf_path <- file.path(ffpe_snvf_dir, model_name, sample_name, sprintf("%s.%s.tsv", sample_name, model_name))
-
 		if (!file.exists(snvf_path)){
 			message(sprintf("	Warning: %s SNVF does not exist at %s . Skipping", model_name, snvf_path))
 			next
 		}
 
-		# read model's score for each sample
-		d <- read.delim(snvf_path)
-		# Get ground truth for that sample
-		truth <- get_truth_set(case_id, matched_ff_vcf_paths, outdir = outdir_root)
-		# Apply model specific processing
-		d <- preprocess_gatk_obmm(d, truth)
-		
+		## Read prepared ground truth
+		truth <- read.delim(file.path("..", "ground-truth", dataset, gsub("-micr1234", "", variant_set), sample_name, sprintf("%s.ground-truth.tsv", sample_name)))
+		truth$truth <- as.logical(truth$truth)
+
+		# read model's score for current sample and Apply model specific processing
+		d <- preprocess_gatk_obmm(read.delim(snvf_path))
+		d <- merge(d, truth, by=c("chrom", "pos", "ref", "alt"))
+
 		## Check if true labels exist in the variant_score_truth table (d)
 		## If not this means there's no overlap between FFPE and FF variants
 		## Cases like these are skipped as evaluation is not supported by precrec
 		if((nrow(d[d$truth, ]) == 0)){
-			message(sprintf("		no true labels exist for %s", snvf_path))
+			message(sprintf("	no true labels exist for %s", snvf_path))
 			write_sample_eval(d, NULL, outdir_root, sample_name, model_name)
 			next
 		}
 		if((nrow(d[!d$truth, ]) == 0)){
-			message(sprintf("		no false labels exist for %s", snvf_path))
+			message(sprintf("	no false labels exist for %s", snvf_path))
 			write_sample_eval(d, NULL, outdir_root, sample_name, model_name)
 			next
 		}
@@ -147,7 +146,7 @@ evaluate_sample_set <- function(
 		# Evaluate the filter's performance
 		res <- evaluate_filter(d, model_name, sample_name)
 
-		# write results
+		# Write results
 		write_sample_eval(d, res, outdir_root, sample_name, model_name)
 		
 	}
@@ -183,7 +182,7 @@ model_name <- "gatk-obmm"
 message(sprintf("Evaluating %s:", model_name))
 
 
-#########################################  ENA PRJEB8754  #######################################
+# #########################################  ENA PRJEB8754  #######################################
 
 # Read Annotation Table
 lookup_table <- read.delim("../annot/PRJEB8754/sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv")
@@ -192,15 +191,25 @@ lookup_table <- read.delim("../annot/PRJEB8754/sample-info_matched-ff-ffpe_on-pa
 ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE"), ]
 frozen_tumoral <- lookup_table[(lookup_table$preservation == "Frozen"), ]
 
-## Evaluate the tumor-only dataset
-evaluate_sample_set(
-	ffpe_tumoral = ffpe_tumoral,
-	frozen_tumoral = frozen_tumoral,
-	model_name = model_name,
-	ff_vcf_dir = "../vcf/PRJEB8754/vcf_filtered_pass-orient-pos-sb-ad-blacklist",
-	ffpe_snvf_dir = "../ffpe-snvf/PRJEB8754/filtered_pass-orient-pos-sb-ad-blacklist_micr1234-excluded"
-)
 
+# ## Evaluate dataset
+# evaluate_sample_set(
+# 	ffpe_tumoral = ffpe_tumoral,
+# 	frozen_tumoral = frozen_tumoral,
+# 	model_name = model_name,
+# 	ff_vcf_dir = "../vcf/PRJEB8754/raw_filtermutectcalls_obmm_unfiltered_dup-unmarked",
+# 	ffpe_snvf_dir = "../ffpe-snvf/PRJEB8754/raw_filtermutectcalls_obmm_unfiltered_dup-unmarked"
+# )
+
+
+# ## Evaluate dataset
+# evaluate_sample_set(
+# 	ffpe_tumoral = ffpe_tumoral,
+# 	frozen_tumoral = frozen_tumoral,
+# 	model_name = model_name,
+# 	ff_vcf_dir = "../vcf/PRJEB8754/filtered_pass-orient-pos-sb-ad-blacklist-macni_dup-unmarked",
+# 	ffpe_snvf_dir = "../ffpe-snvf/PRJEB8754/filtered_pass-orient-pos-sb-ad-blacklist-macni_dup-unmarked"
+# )
 
 #################################  ENA PRJEB44073  ########################################
 
@@ -212,33 +221,86 @@ lookup_table$sample_name <- lookup_table$sample_alias
 ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE"), ]
 frozen_tumoral <- lookup_table[(lookup_table$preservation == "Frozen"), ]
 
-## Evaluate the tumor-only dataset
+## Evaluate  dataset
 evaluate_sample_set(
 	ffpe_tumoral = ffpe_tumoral,
 	frozen_tumoral = frozen_tumoral,
 	model_name = model_name,
-	ff_vcf_dir = "../vcf/PRJEB44073/vcf_filtered_pass-orientation-dp10-blacklist",
-	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-dp10-blacklist_micr1234-excluded"
+	ff_vcf_dir = "../vcf/PRJEB44073/filtered_pass-orientation-dp20",
+	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-dp20"
+)
+
+## Evaluate  dataset
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ff_vcf_dir = "../vcf/PRJEB44073/filtered_pass-orientation-dp20-blacklist",
+	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-dp20-blacklist"
+)
+
+## Evaluate  dataset
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ff_vcf_dir = "../vcf/PRJEB44073/filtered_pass-orientation-dp20-blacklist-macni",
+	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-dp20-blacklist-macni"
+)
+
+## Evaluate  dataset
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ff_vcf_dir = "../vcf/PRJEB44073/filtered_pass-orientation-dp20-blacklist-macni",
+	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-dp20-blacklist-macni-micr1234"
 )
 
 
 ##################################  ENA SRP044740  ##############################################
 
 # Read Annotation Table
-lookup_table <- read.delim("../annot/SRP044740/sample-info_stage1.tsv")
-lookup_table$case_id <- lookup_table$sample_number
+lookup_table <- read.delim("../annot/SRP044740/sample-info_stage2.tsv")
 
 # Stratify annotation table based on FFPE and FF Somatic Variants
-ffpe_tumoral <- lookup_table[(lookup_table$sample_type == "FFPE"), ]
-frozen_tumoral <- lookup_table[(lookup_table$sample_type == "FROZ"), ]
+ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE"), ]
+frozen_tumoral <- lookup_table[(lookup_table$preservation == "Frozen"), ]
 
-## Evaluate the tumor-only dataset
+## Evaluate  dataset
 evaluate_sample_set(
 	ffpe_tumoral = ffpe_tumoral,
 	frozen_tumoral = frozen_tumoral,
 	model_name = model_name,
-	ff_vcf_dir = "../vcf/SRP044740/vcf_filtered_pass-orientation-dp10-blacklist",
-	ffpe_snvf_dir = "../ffpe-snvf/SRP044740/filtered_pass-orientation-dp10-blacklist_micr1234-excluded"
+	ff_vcf_dir = "../vcf/SRP044740/filtered_pass-orientation-dp20",
+	ffpe_snvf_dir = "../ffpe-snvf/SRP044740/filtered_pass-orientation-dp20"
+)
+
+## Evaluate  dataset
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ff_vcf_dir = "../vcf/SRP044740/filtered_pass-orientation-dp20-blacklist",
+	ffpe_snvf_dir = "../ffpe-snvf/SRP044740/filtered_pass-orientation-dp20-blacklist"
+)
+
+## Evaluate  dataset
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ff_vcf_dir = "../vcf/SRP044740/filtered_pass-orientation-dp20-blacklist-macni",
+	ffpe_snvf_dir = "../ffpe-snvf/SRP044740/filtered_pass-orientation-dp20-blacklist-macni"
+)
+
+## Evaluate  dataset
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ff_vcf_dir = "../vcf/SRP044740/filtered_pass-orientation-dp20-blacklist-macni",
+	ffpe_snvf_dir = "../ffpe-snvf/SRP044740/filtered_pass-orientation-dp20-blacklist-macni-micr1234"
 )
 
 
@@ -251,11 +313,29 @@ lookup_table <- read.delim("../annot/SRP065941/sample-annotation_stage1.tsv")
 ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE") & (lookup_table$sample_type == "Tumor"), ]
 frozen_tumoral <- lookup_table[(lookup_table$preservation == "frozen")  & (lookup_table$sample_type == "Tumor"), ]
 
-## Evaluate the tumor-only dataset
+
+## Evaluate dataset
 evaluate_sample_set(
 	ffpe_tumoral = ffpe_tumoral,
 	frozen_tumoral = frozen_tumoral,
 	model_name = model_name,
-	ff_vcf_dir = "../vcf/SRP065941/vcf_filtered_pass-orientation-dp10-blacklist",
-	ffpe_snvf_dir = "../ffpe-snvf/SRP065941/filtered_pass-orientation-dp10-blacklist_micr1234-excluded"
+	ff_vcf_dir = "../vcf/SRP065941/filtered_pass-orientation-dp20",
+	ffpe_snvf_dir = "../ffpe-snvf/SRP065941/filtered_pass-orientation-dp20"
+)
+
+
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ff_vcf_dir = "../vcf/SRP065941/filtered_pass-orientation-dp20-blacklist",
+	ffpe_snvf_dir = "../ffpe-snvf/SRP065941/filtered_pass-orientation-dp20-blacklist"
+)
+
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ff_vcf_dir = "../vcf/SRP065941/filtered_pass-orientation-dp20-blacklist",
+	ffpe_snvf_dir = "../ffpe-snvf/SRP065941/filtered_pass-orientation-dp20-blacklist-micr1234"
 )

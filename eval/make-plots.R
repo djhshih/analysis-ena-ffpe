@@ -2,10 +2,17 @@
 source("../common-ffpe-snvf/R/plot.R")
 
 dset_dirs <- c(
-	"PRJEB8754/filtered_pass-orient-pos-sb-ad-blacklist_micr1234-excluded",
-	"PRJEB44073/filtered_pass-orientation-dp10-blacklist_micr1234-excluded",
-	"SRP044740/filtered_pass-orientation-dp10-blacklist_micr1234-excluded",
-	"SRP065941/filtered_pass-orientation-dp10-blacklist_micr1234-excluded"
+	"PRJEB44073/filtered_pass-orientation-dp20-blacklist-macni-micr1234",
+	"PRJEB44073/filtered_pass-orientation-dp20-blacklist-macni",
+	"PRJEB44073/filtered_pass-orientation-dp20-blacklist",
+	"PRJEB44073/filtered_pass-orientation-dp20",
+	"SRP044740/filtered_pass-orientation-dp20-blacklist-macni-micr1234",
+	"SRP044740/filtered_pass-orientation-dp20-blacklist-macni",
+	"SRP044740/filtered_pass-orientation-dp20-blacklist",
+	"SRP044740/filtered_pass-orientation-dp20",
+	"SRP065941/filtered_pass-orientation-dp20-blacklist-micr1234",
+	"SRP065941/filtered_pass-orientation-dp20-blacklist",
+	"SRP065941/filtered_pass-orientation-dp20"
 )
 
 # dset_author <- c(
