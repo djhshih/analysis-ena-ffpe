@@ -2,13 +2,13 @@
 
 set -euo pipefail
 
-root_outdir="vcf_filtered_pass-orientation-dp10-blacklist"
+root_outdir="filtered_pass-orientation-dp20-blacklist"
 mkdir -p $root_outdir
 
 blacklist_path="../../data/blacklists/master_blacklist.bed.gz"
 echo -e "Filtering using blacklist: $blacklist_path"
 
-for vcf in vcf_filtered_pass-orientation-dp10/*/*.vcf; do
+for vcf in filtered_pass-orientation-dp20/*/*.vcf; do
     
     filename=$(basename $vcf)
     sample_name=${filename%%.*}

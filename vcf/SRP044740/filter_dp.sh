@@ -2,13 +2,13 @@
 
 set -euo pipefail
 
-root_outdir="vcf_filtered_pass-orientation-dp10"
+root_outdir="filtered_pass-orientation-dp20"
 mkdir -p $root_outdir
 
-filter_expression='FMT/DP>=10'
+filter_expression='FMT/DP>=20'
 echo -e "Filtering Expression: $filter_expression"
 
-for vcf in vcf_filtered_pass_orientation/*/*.vcf; do
+for vcf in filtered_pass-orientation/*/*.vcf; do
     
     filename=$(basename $vcf)
     sample_name=${filename%%.*}
