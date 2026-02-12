@@ -27,16 +27,16 @@ def get_ffpe_snvf_paths(dataset: str, variant_set: str) -> list:
 ## However this can be useful if this naming convention ever breaks
 ## Links dataset to variant source sets to filter from
 dset_vset = {
-	"PRJEB44073" : "vcf_filtered_pass_orientation",
-	"SRP044740" : "vcf_filtered_pass_orientation",
-	"SRP065941" : "vcf_filtered_pass_orientation"
+	"PRJEB44073" : "filtered_pass-orientation",
+	"SRP044740" : "filtered_pass-orientation",
+	"SRP065941" : "filtered_pass-orientation"
 }
 
 # ## Target DP filtered vcf used to subset variants from DP unfiltered variant set
 dset_target_vcf = {
-	"PRJEB44073" : "vcf_filtered_pass-orientation-dp10",
-	"SRP044740" : "vcf_filtered_pass-orientation-dp10",
-	"SRP065941" : "vcf_filtered_pass-orientation-dp10"
+	"PRJEB44073" : "filtered_pass-orientation-dp20",
+	"SRP044740" : "filtered_pass-orientation-dp20",
+	"SRP065941" : "filtered_pass-orientation-dp20"
 }
 
 ## Process each datasets
@@ -97,6 +97,3 @@ for i, dset in enumerate(dset_vset.keys()):
 			
 
 print("All files processed.")
-
-
-
