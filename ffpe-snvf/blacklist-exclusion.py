@@ -4,9 +4,9 @@ import os
 import glob
 from tqdm import tqdm 
 
-# %% [markdown]
-# ## Functions
+repo_root = ".."
 
+## Functions
 def read_variants(path:str, columns: list = ["#CHROM", "POS", "REF", "ALT"]) -> pl.DataFrame:
 	"""
 	Reads Variants from a VCF file into a Polars DataFrame.
@@ -58,20 +58,14 @@ def get_filtering_summary(
 
     return summary
 
-# %% [markdown]
-# ## Setup
 
-repo_root = ".."
-
-
-# %% [markdown]
-# ## SNVF Blacklist Filtering
-
+## SNVF Blacklist Filtering
 ## Wrapper Function
-def filter_dataset(dataset: str, source_var_set: str) -> None:
+def filter_dataset(dataset: str, source_var_set: str, new_var_set: str = None) -> None:
 
-	new_var_set = f"{source_var_set}-blacklist"
-	vcf_dir = f"{repo_root}/vcf/{dataset}/vcf_{new_var_set}"
+	if not new_var_set:
+		new_var_set = f"{source_var_set}-blacklist"
+	vcf_dir = f"{repo_root}/vcf/{dataset}/{new_var_set}"
 
 
 	ffpe_snvf = (
@@ -113,22 +107,13 @@ def filter_dataset(dataset: str, source_var_set: str) -> None:
 		)
 
 		filtering_summary.append(sample_filtering_summary)
-
 		filtered_snvf.write_csv(f"{filtered_snvf_outdir}/{fname}", separator="\t")
 
 	pl.DataFrame(filtering_summary).write_csv(f"{dataset}/{new_var_set}/blacklist-exclusion_filtering-summary.tsv", separator="\t")
 
-
-
-# %% [markdown]
-# ### Filter specified variant set from each dataset
-
-filter_dataset("PRJEB8754", "filtered_pass-orient-pos-sb-ad")
-
-filter_dataset("PRJEB44073", "filtered_pass-orientation-dp10")
-
-filter_dataset("SRP044740", "filtered_pass-orientation-dp10")
-
-filter_dataset("SRP065941", "filtered_pass-orientation-dp10")
-
+### Filter specified variant set from each dataset
+filter_dataset("PRJEB8754", "filtered_pass-orient-pos-sb-ad_dup-unmarked", "filtered_pass-orient-pos-sb-ad-blacklist_dup-unmarked")
+filter_dataset("PRJEB44073", "filtered_pass-orientation-dp20")
+filter_dataset("SRP044740", "filtered_pass-orientation-dp20")
+filter_dataset("SRP065941", "filtered_pass-orientation-dp20")
 
