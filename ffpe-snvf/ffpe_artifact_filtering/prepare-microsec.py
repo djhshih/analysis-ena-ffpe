@@ -3,281 +3,14 @@ import polars as pl
 import os
 import glob
 import pysam
+import sys
 
-# %% [markdown]
-# ### Helper Functions
+# Local Dependencies
+sys.path.append("../../common-ffpe-snvf/python")
+from microsec_preparation import *
+from common import return_path_if_exists
 
-def return_path_if_exists(path: str, abs=False) -> str:
-	if os.path.exists(path):
-		return os.path.abspath(path) if abs else path
-	else:
-		raise FileNotFoundError(f"File not found: {path}")
-
-def read_variants(vcf_path: str, split_multiallelic = True) -> pl.DataFrame:
-	variants = (
-		pl.read_csv(
-			vcf_path, 
-			separator="\t", 
-			comment_prefix="##", 
-			null_values=["."],
-			columns=["#CHROM", "POS", "REF", "ALT"], 
-			infer_schema_length=100
-		)
-		.rename(lambda x: x.strip("#").lower())
-		.with_columns(pl.col("chrom").str.strip_chars())
-	)
- 
-	if split_multiallelic:
-		variants = variants.with_columns(
-			pl.col("alt").str.split(",").alias("alt")
-		).explode("alt")
-	
-	return variants
-
-def snv_filter(df: pl.DataFrame) -> pl.DataFrame:
-	return df.filter(
-		(pl.col("ref").str.len_chars() == 1) & 
-		(pl.col("alt").str.len_chars() == 1)
-	)
-
-def ct_filter(df: pl.DataFrame) -> pl.DataFrame:
-	return df.filter(
-		((pl.col("ref") == "C") & (pl.col("alt") == "T")) | 
-  		((pl.col("ref") == "G") & (pl.col("alt") == "A"))
-	)
-
-# Define a function to be applied to each row-like struct
-# Used to retrieve neighbourhood sequence of 20bp in each direction via map_elements which is vectorized
-def get_neighborhood_sequence(row_struct: dict, genome: pysam.FastaFile) -> str:
-    chrom = row_struct["Chr"]
-    pos = row_struct["Pos"] # 1-based VCF position
-    ref = row_struct["Ref"]
-    alt = row_struct["Alt"]
-
-    # Pysam fetch is 0-based, half-open [start, end)
-    # VCF Pos 100 = Index 99
-    
-    # Left Flank (20bp before the variant start)
-    # If Pos=100, we want indices 79 to 99 (length 20)
-    left_end_idx = pos - 1
-    left_start_idx = max(0, left_end_idx - 20)
-    
-    # Right Flank (20bp after the REF allele ends)
-    # If SNV (Ref len 1) at Pos 100: Ref is index 99. Next base is index 100.
-    # If Del (Ref len 5) at Pos 100: Ref is 99..103. Next base is index 104.
-    right_start_idx = left_end_idx + len(ref)
-    right_end_idx = right_start_idx + 20
-
-    try:
-        left_flank = genome.fetch(chrom, left_start_idx, left_end_idx)
-        right_flank = genome.fetch(chrom, right_start_idx, right_end_idx)
-
-        full_seq = left_flank + alt + right_flank
-        
-        # Explicitly removing newline characters (\n) and carriage returns (\r)
-        return full_seq.replace("\n", "").replace("\r", "").upper()
-
-    except (ValueError, KeyError):
-        # KeyError handles missing chromosomes
-        return None
-
-def get_read_length(bam_path: str) -> int:
-	bam = pysam.AlignmentFile(bam_path, "rb")
-	max_reads = 100000
-	
-	lengths = []
-	for i, read in enumerate(bam):
-
-		if read.is_unmapped:
-			continue
-		
-		if i >= max_reads:
-			break
-		
-		lengths.append(read.query_length)
-		
-	return pl.Series(lengths).mode()[0]
-
-def natural_sort_variants(df: pl.DataFrame) -> pl.DataFrame:
-	return (
-		df.with_columns(
-			# Create a temporary column 'chr_rank' for sorting
-			pl.col("Chr")
-			.str.replace("chr", "") # Remove 'chr' prefix
-			.str.replace("X", "23") # Handle Sex chromosomes
-			.str.replace("Y", "24")
-			.str.replace("M", "25") # Handle Mitochondria if present
-			.str.replace("MT", "26") # Handle Mitochondria if present
-			.cast(pl.Int32, strict=False) # Convert to Integer (strict=False turns unknown contigs to null)
-			.fill_null(999) # Put weird contigs at the end
-			.alias("chr_rank")
-		)
-		.sort(["chr_rank", "Pos"]) # Sort by Rank, then Position
-		.drop("chr_rank") # Remove the temp column
-	)
-
-
-def annotate_simple_repeats(mut_info: pl.DataFrame, simple_repeats_df: pl.DataFrame) -> pl.DataFrame:
-	"""
-	Annotates variants with 'Y' or 'N' if they fall within a simple repeat region.
-	Assumes both DataFrames contain Chromosome and Position columns.
-	"""
-	
-	# 1. Sort both DataFrames
-	# join_asof requires the 'on' column (Pos/start) to be sorted within the 'by' groups (Chr).
-	# Sorting by ["Chr", "Pos"] achieves this and keeps the data human-readable.
-	variants_sorted = natural_sort_variants(mut_info) #.with_columns(pl.col("Pos").set_sorted())
-	repeats_sorted = simple_repeats_df.sort(["chrom", "start"]) #.with_columns(pl.col("start").set_sorted())
-
-	# 2. Perform the ASOF Join
-	# We find the repeat segment that started most recently before (or exactly at) the variant position.
-	joined = variants_sorted.join_asof(
-		repeats_sorted,
-		left_on="Pos",
-		right_on="start",
-		by_left="Chr",
-		by_right="chrom",
-		strategy="backward" # Look for the closest start position <= variant position
-	)
-
-	# 3. Check overlap
-	# We found the closest start. Now, is the variant actually INSIDE that segment?
-	# i.e., is Variant Pos <= Repeat End?
-	final_df = joined.with_columns(
-		pl.when(pl.col("Pos") <= pl.col("end"))
-		.then(pl.lit("Y"))
-		.otherwise(pl.lit("N"))
-		.alias("SimpleRepeat_TRF")
-	).drop(["start", "end"]) # Clean up BED columns
-
-	return final_df
-
-
-def make_mut_info(vcf_path: str, genome: pysam.FastaFile, sample_name: str, simple_repeats_bed: pl.DataFrame | None = None, ct_only: bool = False, snv_only: bool = False) -> pl.DataFrame:
-	
-	# Read Variants
-	mut_info = read_variants(vcf_path)
-
-	# Keep only SNVs if requested
-	if snv_only:
-		mut_info = snv_filter(mut_info)
-  
-	# Keep only C>T and G>A mutations if requested
-	if ct_only:
-		mut_info = ct_filter(mut_info)
-
-	# Rename columns to match MicroSEC expected input
-	mut_info = mut_info.rename({
-		"chrom": "Chr",
-		"pos": "Pos",
-		"ref": "Ref",
-		"alt": "Alt"
-	})
- 
-	# Add Sample Name
-	mut_info = mut_info.with_columns(
-		pl.lit(sample_name).alias("Sample")
-	)
-
-	# MicroSEC requires variants to be at least 200 nucleotides away from the terminal ends of the chromosome/contig where they are located
-	chrom_lengths = pl.DataFrame({
-		"Chr": genome.references,
-		"chr_len_ref": genome.lengths
-	})
-
-	# 2. Join and Filter
-	mut_info = (
-		mut_info.join(chrom_lengths, on="Chr", how="inner")
-		.filter(
-			(pl.col("Pos") > 200) & 
-			(pl.col("Pos") < (pl.col("chr_len_ref") - 200))
-		)
-		.drop("chr_len_ref")
-	)
-
-	# Create a struct of the columns needed for the neighborhood sequence calculation
-	# and then apply the function.
-	mut_info = mut_info.with_columns(
-		pl.struct(["Chr", "Pos", "Ref", "Alt"])
-		.map_elements(lambda x: get_neighborhood_sequence(x, genome), return_dtype=pl.Utf8)
-		.alias("Neighborhood_sequence")
-	)
-	
-	# Create Mutation Type column as this is a requirement for MicroSEC input
-	snv_mask = mut_info["Ref"].str.len_chars() == mut_info["Alt"].str.len_chars()
-	deletion_mask = (mut_info["Ref"].str.len_chars() > 1) & (mut_info["Alt"].str.len_chars() == 1)
-	insertion_mask = (mut_info["Ref"].str.len_chars() == 1) & (mut_info["Alt"].str.len_chars() > 1)
-	
-	mut_info = (
-		mut_info.with_columns([
-			pl.when(snv_mask)
-			.then(mut_info["Ref"].str.len_chars().cast(pl.Utf8) + "-snv")
-			.when(deletion_mask)
-			.then((mut_info["Ref"].str.len_chars() - 1).cast(pl.Utf8) + "-del")
-			.when(insertion_mask)
-			.then((mut_info["Alt"].str.len_chars() - 1).cast(pl.Utf8) + "-ins")
-			.otherwise(pl.lit("-"))
-			.alias("Mut_type")
-		])
-	)
-
-
-	# Add the simpleRepeat_TRF column by checking if the variant is in a simple repeat region
-	# simple repeats bed obtained from ucsc table browser is used
-	if simple_repeats_bed is not None:
-		mut_info = annotate_simple_repeats(mut_info, simple_repeats_bed)
-	else:
-		# If no simple repeats bed provided, fill with "-"
-		mut_info = mut_info.with_columns(
-			pl.lit("-").alias("SimpleRepeat_TRF")
-		)
-
-
-	# Reoder columns accodign to MicroSEC documentation
-	mut_info = mut_info.select([
-		"Sample",
-		"Mut_type",
-		"Chr",
-		"Pos",
-		"Ref",
-		"Alt",
-		"SimpleRepeat_TRF",
-		"Neighborhood_sequence"
-	])
-
-	return mut_info
-
-def make_sample_info(
-		sample_name: str,
-		mut_info_path: str,
-		bam_path: str,
-		ref_path: str,
-		simple_repeat_path: str,
-		genome_build: str = "hg38",
-		adapter_1 = "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
-		adapter_2 = "AGATCGGAAGAGCGTCGTGTAGGGAAAGAGTGT"
-	) -> pl.DataFrame:
-
-	read_length = get_read_length(bam_path)
-
-	info = {
-		"sample_name": sample_name,
-		"mutation_file": mut_info_path,
-		"bam_file": bam_path,
-		"read_length": read_length,
-		"adapter_1": adapter_1,
-		"adapter_2": adapter_2, # Can be None/NA
-		"genome_build": genome_build, # e.g. "hg38" or "Human"
-		"panel_name": "TOP",
-		"ref_genome": ref_path, # Path to fasta if needed for CRAM
-		"simple_repeat_bed": simple_repeat_path # Optional
-	}
-
-	return pl.DataFrame(info)
-
-# %% [markdown]
-# ### Main Execution
-
+### Main Execution
 #### Resource path and Directory Setup
 outdir_root = ".."
 repo_root = "../.."
@@ -320,8 +53,6 @@ def prepare_dataset_inputs(
 
 		###--------------------------------------------
 
-		## Read reference genome
-		genome = pysam.FastaFile(ref_path)
 
 		# Read in the simple repeats bed file to annotate variants later
 		simple_repeats_bed = pl.read_csv(
@@ -342,8 +73,8 @@ def prepare_dataset_inputs(
 			print("\tPreparing mutation info")
 			mut_info = make_mut_info(
 				vcf_path=vcf_path, 
-				genome=genome, 
-				sample_name=sample_name, 
+				ref_fasta_path=ref_path, 
+				sample_name=sample_name,
 				simple_repeats_bed=simple_repeats_bed,
 				ct_only=ct_only, 
 				snv_only=snv_only
@@ -377,9 +108,7 @@ def prepare_dataset_inputs(
 
 
 
-# %% [markdown]
-# #### Prepare PRJEB8754
-
+#### Prepare PRJEB8754
 ## Create annotation table linking ffpe samples to 
 dataset = "PRJEB8754"
 ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/vcf_filtered_pass-orient-pos-sb-ad/*/*.vcf")) if "Frozen" not in path]
@@ -398,12 +127,10 @@ prepare_dataset_inputs(
 )
 
 
-# %% [markdown]
-# #### Prepare PRJEB44073
-
+#### Prepare PRJEB44073
 ## Create annotation table linking ffpe samples to 
 dataset = "PRJEB44073"
-ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/vcf_filtered_pass-orientation-dp10/*/*.vcf"))]
+ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/vcf_filtered_pass-orientation-dp10-blacklist/*/*.vcf"))]
 annot = pl.read_csv(f"../../annot/{dataset}/sample-info_stage2.tsv", separator="\t")["sample_alias", "preservation"]
 
 sample_paths = (
@@ -419,17 +146,15 @@ sample_paths = (
 ## Prepare microsec inputs and batch execution scripts
 prepare_dataset_inputs(
 	dataset = f"{dataset}", 
-	variant_set = "filtered_pass-orientation-dp10", 
+	variant_set = "filtered_pass-orientation-dp10-blacklist", 
 	sample_paths = sample_paths
 )
 
 
-# %% [markdown]
-# #### Prepare SRP044740
-
+#### Prepare SRP044740
 ## Create annotation table linking ffpe samples to 
 dataset = "SRP044740"
-ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/vcf_filtered_pass-orientation-dp10/*/*.vcf")) if "FFPE" in path]
+ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/vcf_filtered_pass-orientation-dp10-blacklist/*/*.vcf")) if "FFPE" in path]
 
 sample_paths = pl.DataFrame({
 		"sample_name" : [path.split("/")[-2] for path in ffpe_vcf_paths],
@@ -440,17 +165,15 @@ sample_paths = pl.DataFrame({
 ## Prepare microsec inputs and batch execution scripts
 prepare_dataset_inputs(
 	dataset = f"{dataset}", 
-	variant_set = "filtered_pass-orientation-dp10", 
+	variant_set = "filtered_pass-orientation-dp10-blacklist", 
 	sample_paths = sample_paths
 )
 
 
-# %% [markdown]
-# #### Prepare SRP065941
-
+#### Prepare SRP065941
 ## Create annotation table linking ffpe samples to 
 dataset = "SRP065941"
-ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/vcf_filtered_pass-orientation-dp10/*/*.vcf")) if "FFPE" in path]
+ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/vcf_filtered_pass-orientation-dp10-blacklist/*/*.vcf")) if "FFPE" in path]
 
 sample_paths = pl.DataFrame({
 		"sample_name" : [path.split("/")[-2] for path in ffpe_vcf_paths],
@@ -461,7 +184,9 @@ sample_paths = pl.DataFrame({
 ## Prepare microsec inputs and batch execution scripts
 prepare_dataset_inputs(
 	dataset = f"{dataset}", 
-	variant_set = "filtered_pass-orientation-dp10", 
+	variant_set = "filtered_pass-orientation-dp10-blacklist", 
 	sample_paths = sample_paths
 )
+
+
 
