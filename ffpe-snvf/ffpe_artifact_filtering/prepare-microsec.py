@@ -2,7 +2,6 @@
 import polars as pl
 import os
 import glob
-import pysam
 import sys
 
 # Local Dependencies
@@ -108,30 +107,32 @@ def prepare_dataset_inputs(
 
 
 
-#### Prepare PRJEB8754
-## Create annotation table linking ffpe samples to 
-dataset = "PRJEB8754"
-ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/vcf_filtered_pass-orient-pos-sb-ad/*/*.vcf")) if "Frozen" not in path]
+# #### Prepare PRJEB8754
+# ## Create annotation table linking ffpe samples to 
+# dataset = "PRJEB8754"
+# variant_set = "filtered_pass-orient-pos-sb-ad"
+# ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/{variant_set}/*/*.vcf")) if "Frozen" not in path]
 
-sample_paths = pl.DataFrame({
-    "sample_name" : [path.split("/")[-2] for path in ffpe_vcf_paths],
-    "vcf_path" : ffpe_vcf_paths,
-    "bam_path" : [return_path_if_exists(f"{repo_root}/data/{dataset}/bam_dup-unmarked/{path.split("/")[-2]}/{path.split("/")[-2]}.bam", abs=True) for path in ffpe_vcf_paths],
-})
+# sample_paths = pl.DataFrame({
+#     "sample_name" : [path.split("/")[-2] for path in ffpe_vcf_paths],
+#     "vcf_path" : ffpe_vcf_paths,
+#     "bam_path" : [return_path_if_exists(f"{repo_root}/data/{dataset}/bam_dup-unmarked/{path.split("/")[-2]}/{path.split("/")[-2]}.bam", abs=True) for path in ffpe_vcf_paths],
+# })
 
-## Prepare microsec inputs and batch execution scripts
-prepare_dataset_inputs(
-	dataset = f"{dataset}", 
-	variant_set = "filtered_pass-orient-pos-sb-ad", 
-	sample_paths = sample_paths
-)
+# ## Prepare microsec inputs and batch execution scripts
+# prepare_dataset_inputs(
+# 	dataset = f"{dataset}", 
+# 	variant_set = "filtered_pass-orient-pos-sb-ad", 
+# 	sample_paths = sample_paths
+# )
 
 
 #### Prepare PRJEB44073
 ## Create annotation table linking ffpe samples to 
 dataset = "PRJEB44073"
-ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/vcf_filtered_pass-orientation-dp10-blacklist/*/*.vcf"))]
-annot = pl.read_csv(f"../../annot/{dataset}/sample-info_stage2.tsv", separator="\t")["sample_alias", "preservation"]
+variant_set = "filtered_pass-orientation-dp20-blacklist"
+ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/{variant_set}/*/*.vcf"))]
+annot = pl.read_csv(f"../../annot/{dataset}/sample-info_stage3.tsv", separator="\t")["sample_name", "preservation"]
 
 sample_paths = (
 	pl.DataFrame({
@@ -139,14 +140,15 @@ sample_paths = (
 		"vcf_path" : ffpe_vcf_paths,
 		"bam_path" : [return_path_if_exists(f"{repo_root}/data/{dataset}/bam/{path.split("/")[-2]}/{path.split("/")[-2]}.bam", abs=True) for path in ffpe_vcf_paths],
 	})
-    .join(annot, left_on="sample_name", right_on="sample_alias")
+    .join(annot, on="sample_name")
     .filter(pl.col("preservation") == "FFPE")
+	.sort("sample_name")
 )
 
 ## Prepare microsec inputs and batch execution scripts
 prepare_dataset_inputs(
 	dataset = f"{dataset}", 
-	variant_set = "filtered_pass-orientation-dp10-blacklist", 
+	variant_set = variant_set, 
 	sample_paths = sample_paths
 )
 
@@ -154,7 +156,8 @@ prepare_dataset_inputs(
 #### Prepare SRP044740
 ## Create annotation table linking ffpe samples to 
 dataset = "SRP044740"
-ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/vcf_filtered_pass-orientation-dp10-blacklist/*/*.vcf")) if "FFPE" in path]
+variant_set = "filtered_pass-orientation-dp20-blacklist-macni"
+ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/{variant_set}/*/*.vcf")) if "FFPE" in path]
 
 sample_paths = pl.DataFrame({
 		"sample_name" : [path.split("/")[-2] for path in ffpe_vcf_paths],
@@ -165,7 +168,7 @@ sample_paths = pl.DataFrame({
 ## Prepare microsec inputs and batch execution scripts
 prepare_dataset_inputs(
 	dataset = f"{dataset}", 
-	variant_set = "filtered_pass-orientation-dp10-blacklist", 
+	variant_set = variant_set,
 	sample_paths = sample_paths
 )
 
@@ -173,7 +176,8 @@ prepare_dataset_inputs(
 #### Prepare SRP065941
 ## Create annotation table linking ffpe samples to 
 dataset = "SRP065941"
-ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/vcf_filtered_pass-orientation-dp10-blacklist/*/*.vcf")) if "FFPE" in path]
+variant_set = "filtered_pass-orientation-dp20-blacklist"
+ffpe_vcf_paths = [os.path.abspath(path) for path in sorted(glob.glob(f"../../vcf/{dataset}/{variant_set}/*/*.vcf")) if "FFPE" in path]
 
 sample_paths = pl.DataFrame({
 		"sample_name" : [path.split("/")[-2] for path in ffpe_vcf_paths],
@@ -184,9 +188,7 @@ sample_paths = pl.DataFrame({
 ## Prepare microsec inputs and batch execution scripts
 prepare_dataset_inputs(
 	dataset = f"{dataset}", 
-	variant_set = "filtered_pass-orientation-dp10-blacklist", 
+	variant_set = variant_set, 
 	sample_paths = sample_paths
 )
-
-
 
