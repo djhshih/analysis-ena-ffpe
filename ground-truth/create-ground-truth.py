@@ -113,12 +113,14 @@ def process_dataset(dataset: str, variant_set: str, annot_path: str, vcf_suffix:
 		logging.info(f"\tGround-truth written to: {outpath}")
 		
 
+## ENA Betge15
 process_dataset(
     dataset="PRJEB8754",
     variant_set="filtered_pass-orient-pos-sb-ad-blacklist-macni_dup-unmarked",
     annot_path = f"../annot/PRJEB8754/sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv"
 )
 
+## ENA Chong21
 process_dataset(
     dataset = "PRJEB44073",
     variant_set = "filtered_pass-orientation-dp20",
@@ -137,6 +139,7 @@ process_dataset(
     annot_path = f"{repo_root}/annot/PRJEB44073/sample-info_stage3.tsv"
 )
 
+## ENA SRP044740
 process_dataset(
     dataset = "SRP044740",
     variant_set = "filtered_pass-orientation-dp20",
@@ -155,6 +158,7 @@ process_dataset(
     annot_path = f"{repo_root}/annot/SRP044740/sample-info_stage2.tsv"
 )
 
+## ENA Oh15
 process_dataset(
     dataset = "SRP065941",
     variant_set = "filtered_pass-orientation-dp20",
