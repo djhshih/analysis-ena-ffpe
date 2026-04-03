@@ -2,17 +2,21 @@
 source("../common-ffpe-snvf/R/plot.R")
 
 dset_dirs <- c(
-	"PRJEB44073/filtered_pass-orientation-dp20-blacklist-macni-micr1234",
-	"PRJEB44073/filtered_pass-orientation-dp20-blacklist-macni",
-	"PRJEB44073/filtered_pass-orientation-dp20-blacklist",
-	"PRJEB44073/filtered_pass-orientation-dp20",
-	"SRP044740/filtered_pass-orientation-dp20-blacklist-macni-micr1234",
-	"SRP044740/filtered_pass-orientation-dp20-blacklist-macni",
-	"SRP044740/filtered_pass-orientation-dp20-blacklist",
-	"SRP044740/filtered_pass-orientation-dp20",
-	"SRP065941/filtered_pass-orientation-dp20-blacklist-micr1234",
-	"SRP065941/filtered_pass-orientation-dp20-blacklist",
-	"SRP065941/filtered_pass-orientation-dp20"
+	# "PRJEB8754/dup-unmarked_filtered_pass-orient-pos-sb",
+	# "PRJEB8754/dup-unmarked_filtered_pass-orient-pos-sb-vaf-dp",
+	# "PRJEB8754/dup-unmarked_filtered_pass-orient-pos-sb-vaf-dp-macni"
+	"PRJEB44073/filtered_pass-orientation-exome-blacklist-macni-micr1234",
+	"PRJEB44073/filtered_pass-orientation-exome-blacklist-macni",
+	"PRJEB44073/filtered_pass-orientation-exome-blacklist",
+	"PRJEB44073/filtered_pass-orientation-exome",
+	"SRP044740/filtered_pass-orientation-exome-blacklist-macni-micr1234",
+	"SRP044740/filtered_pass-orientation-exome-blacklist-macni",
+	"SRP044740/filtered_pass-orientation-exome-blacklist",
+	"SRP044740/filtered_pass-orientation-exome",
+	"SRP065941/filtered_pass-orientation-exome-blacklist-micr1234",
+	"SRP065941/filtered_pass-orientation-exome-blacklist",
+	"SRP065941/filtered_pass-orientation-exome",
+	"SRP065941/filtered_pass-orientation"
 )
 
 # dset_author <- c(
