@@ -2,10 +2,11 @@
 
 set -euo pipefail
 
-target_indir="../../germline-filter/PRJEB8754/filtered_pass-orient-pos-sb-ad-blacklist-macni_dup-unmarked"
-outdir_root=filtered_pass-orient-pos-sb-ad-blacklist-macni_dup-unmarked
+outdir_root=dup-unmarked_filtered_pass-orient-pos-sb-vaf-dp-macni
+target_indir="../../germline-filter/PRJEB8754/dup-unmarked_filtered_pass-orient-pos-sb-vaf-dp-macni"
 
-for vcf in filtered_pass-orient-pos-sb-ad-blacklist_dup-unmarked/*/*.vcf; do
+
+for vcf in dup-unmarked_filtered_pass-orient-pos-sb-ad-blacklist/*/*.vcf.gz; do
 
     echo $vcf
 
@@ -17,7 +18,8 @@ for vcf in filtered_pass-orient-pos-sb-ad-blacklist_dup-unmarked/*/*.vcf; do
         outdir=$outdir_root/$sample_name
         mkdir -p $outdir
 
-        bcftools view -T $target_list $vcf -o $outdir/$sample_name.vcf
+        bcftools view -T $target_list $vcf -Oz -o $outdir/$sample_name.vcf.gz
+        bcftools index -t $outdir/$sample_name.vcf.gz
 
     else
         echo $target_list does not exist. 
