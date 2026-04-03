@@ -59,10 +59,10 @@ def get_ffpe_snvf_paths(dataset: str, variant_set: str) -> list:
 
 ## SNVF Blacklist Filtering
 ## Wrapper Function
-def filter_dataset(dataset: str, source_variant_set: str, target_variant_set: Optional[str] = None, vcf_ext:str = "vcf") -> None:
+def filter_dataset(dataset: str, source_variant_set: str, target_variant_set: Optional[str] = None, vcf_ext: str = "vcf.gz") -> None:
 
 	if not target_variant_set:
-		target_variant_set = f"{source_variant_set}-blacklist"
+		target_variant_set = f"{source_variant_set}-exome"
 
 	print(f"Processing Dataset: {dataset} | Source Variant Set: {source_variant_set} | Target Variant Set: {target_variant_set}")
 
@@ -102,14 +102,12 @@ def filter_dataset(dataset: str, source_variant_set: str, target_variant_set: Op
 		filtering_summary.append(sample_filtering_summary)
 		filtered_snvf.write_csv(f"{filtered_snvf_outdir}/{fname}", separator="\t")
 
-	pl.DataFrame(filtering_summary).write_csv(f"{dataset}/{target_variant_set}/blacklist-exclusion_filtering-summary.tsv", separator="\t")
+	pl.DataFrame(filtering_summary).write_csv(f"{dataset}/{target_variant_set}/{os.path.basename(__file__).split(".")[0]}_filtering-summary.tsv", separator="\t")
 
 ### Filter specified variant set from each dataset
-# filter_dataset("PRJEB8754", "filtered_pass-orient-pos-sb-ad_dup-unmarked", "filtered_pass-orient-pos-sb-ad-blacklist_dup-unmarked")
-# filter_dataset("PRJEB44073", "filtered_pass-orientation-dp20")
-# filter_dataset("SRP044740", "filtered_pass-orientation-dp20")
-# filter_dataset("SRP065941", "filtered_pass-orientation-dp20")
+filter_dataset("PRJEB44073", "filtered_pass-orientation", "filtered_pass-orientation-exome")
 
-filter_dataset("PRJEB44073", "filtered_pass-orientation-exome", "filtered_pass-orientation-exome-blacklist", "vcf.gz")
-filter_dataset("SRP044740", "filtered_pass-orientation", "filtered_pass-orientation-exome-blacklist", "vcf.gz")
-filter_dataset("SRP065941", "filtered_pass-orientation", "filtered_pass-orientation-exome-blacklist", "vcf.gz")
+filter_dataset("SRP044740", "filtered_pass-orientation", "filtered_pass-orientation-exome")
+
+filter_dataset("SRP065941", "filtered_pass-orientation", "filtered_pass-orientation-exome")
+

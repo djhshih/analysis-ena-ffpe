@@ -4,6 +4,7 @@ import os
 import glob
 from tqdm import tqdm
 import sys
+from typing import Optional
 
 # Local Dependencies
 repo_root = ".."
@@ -56,7 +57,7 @@ def get_ffpe_snvf_paths(dataset: str, variant_set: str) -> list:
 	return paths
 
 ## SNVF Germline Filtering
-def filter_dataset(dataset: str, source_variant_set: str, new_variant_set: str = None) -> None:
+def filter_dataset(dataset: str, source_variant_set: str, new_variant_set: Optional[str] = None, vcf_ext:str = "vcf.gz") -> None:
 
 	if not new_variant_set:
 		new_variant_set = f"{source_variant_set}-macni"
@@ -76,7 +77,7 @@ def filter_dataset(dataset: str, source_variant_set: str, new_variant_set: str =
 
 		snvf = pl.read_csv(path, separator="\t", infer_schema_length=1000)
 		
-		target_vars_path = f"{vcf_dir}/{sample_name}/{sample_name}.vcf"
+		target_vars_path = f"{vcf_dir}/{sample_name}/{sample_name}.{vcf_ext}"
 		if not os.path.exists(target_vars_path):
 			print(f"{target_vars_path} does not exist. Likely reason is that all variants were filtered out.")
 			continue
@@ -104,14 +105,17 @@ def filter_dataset(dataset: str, source_variant_set: str, new_variant_set: str =
 
 		filtered_snvf.write_csv(f"{filtered_snvf_outdir}/{fname}", separator="\t")
 
-	pl.DataFrame(filtering_summary).write_csv(f"{dataset}/{new_variant_set}/germline-exclusion_filtering-summary.tsv", separator="\t")
+	pl.DataFrame(filtering_summary).write_csv(f"{dataset}/{new_variant_set}/{os.path.basename(__file__).split(".")[0]}_filtering-summary.tsv", separator="\t")
 
 
 
 ### Filter specified variant set from each dataset
-filter_dataset("PRJEB44073", "filtered_pass-orientation-dp20-blacklist")
+# filter_dataset(
+# 	dataset = "PRJEB8754", 
+#     source_variant_set = "dup-unmarked_filtered_pass-orient-pos-sb-vaf-dp"
+# )
 
-filter_dataset("SRP044740", "filtered_pass-orientation-dp20-blacklist")
+filter_dataset("PRJEB44073", "filtered_pass-orientation-exome-blacklist")
 
-filter_dataset("PRJEB8754", "filtered_pass-orient-pos-sb-ad-blacklist_dup-unmarked", "filtered_pass-orient-pos-sb-ad-blacklist-macni_dup-unmarked")
+filter_dataset("SRP044740", "filtered_pass-orientation-exome-blacklist")
 
