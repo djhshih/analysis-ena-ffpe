@@ -84,6 +84,11 @@ def filter_dataset(
 		
 		## Read MicroSEC results and select artifacts
 		msec_res_path = f"{msec_dir}/{sample_name}/{sample_name}.microsec.tsv"
+
+		if dataset == "SRP044740" and not os.path.exists(msec_res_path):
+			print(f"MicroSEC result not found at: {msec_res_path}. \nLikely reason: MicroSEC did not successfully for this sample.\n Skipping sample {sample_name}...")
+			continue
+
 		msec_res = pl.read_csv(msec_res_path, separator="\t", infer_schema_length=10000)
 		msec_artifacts = msec_res.filter(pl.col(mesc_filter_col).is_not_null())
 		
@@ -115,18 +120,18 @@ def filter_dataset(
 
 
 # ## SNVF MICR Filtering
-filter_dataset(
-		dataset = "PRJEB44073",
-		source_variant_set = "filtered_pass-orientation-exome-blacklist-macni",
-		msec_variant_set = "filtered_pass-orientation-exome",
-		new_variant_set = "filtered_pass-orientation-exome-blacklist-macni-micr1234",
-		mesc_filter_col = "msec_filter_1234"
-	)
+# filter_dataset(
+# 		dataset = "PRJEB44073",
+# 		source_variant_set = "filtered_pass-orientation-exome-blacklist-macni",
+# 		msec_variant_set = "filtered_pass-orientation-exome",
+# 		new_variant_set = "filtered_pass-orientation-exome-blacklist-macni-micr1234",
+# 		mesc_filter_col = "msec_filter_1234"
+# 	)
 
 filter_dataset(
 		dataset = "SRP044740",
 		source_variant_set = "filtered_pass-orientation-exome-blacklist-macni",
-		msec_variant_set = "filtered_pass-orientation-exome",
+		msec_variant_set = "filtered_pass-orientation-exome-blacklist-macni",
 		new_variant_set = "filtered_pass-orientation-exome-blacklist-macni-micr1234",
 		mesc_filter_col = "msec_filter_1234"
 	)
