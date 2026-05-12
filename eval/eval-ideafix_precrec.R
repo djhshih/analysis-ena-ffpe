@@ -130,15 +130,6 @@ model_name <- "ideafix"
 # ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE"), ]
 # frozen_tumoral <- lookup_table[(lookup_table$preservation == "Frozen"), ]
 
-
-# ## Evaluate dataset
-# evaluate_sample_set(
-# 	ffpe_tumoral = ffpe_tumoral,
-# 	frozen_tumoral = frozen_tumoral,
-# 	model_name = model_name,
-# 	ffpe_snvf_dir = "../ffpe-snvf/PRJEB8754/dup-unmarked_raw_filtermutectcalls_obmm_unfiltered"
-# )
-
 # evaluate_sample_set(
 # 	ffpe_tumoral = ffpe_tumoral,
 # 	frozen_tumoral = frozen_tumoral,
@@ -146,69 +137,55 @@ model_name <- "ideafix"
 # 	ffpe_snvf_dir = "../ffpe-snvf/PRJEB8754/dup-unmarked_filtered_pass-orient-pos-sb"
 # )
 
-# evaluate_sample_set(
-# 	ffpe_tumoral = ffpe_tumoral,
-# 	frozen_tumoral = frozen_tumoral,
-# 	model_name = model_name,
-# 	ffpe_snvf_dir = "../ffpe-snvf/PRJEB8754/dup-unmarked_filtered_pass-orient-pos-sb-vaf-dp"
-# )
 
-# evaluate_sample_set(
-# 	ffpe_tumoral = ffpe_tumoral,
-# 	frozen_tumoral = frozen_tumoral,
-# 	model_name = model_name,
-# 	ffpe_snvf_dir = "../ffpe-snvf/PRJEB8754/dup-unmarked_filtered_pass-orient-pos-sb-vaf-dp-macni"
-# )
+#################################  ENA PRJEB44073  ########################################
 
-# # #################################  ENA PRJEB44073  ########################################
+# Read Annotation Table
+lookup_table <- read.delim("../annot/PRJEB44073/sample-info_stage2.tsv")
+lookup_table$sample_name <- lookup_table$sample_alias
 
-# # Read Annotation Table
-# lookup_table <- read.delim("../annot/PRJEB44073/sample-info_stage2.tsv")
-# lookup_table$sample_name <- lookup_table$sample_alias
+# Stratify annotation table based on FFPE and FF Somatic Variants
+ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE"), ]
+frozen_tumoral <- lookup_table[(lookup_table$preservation == "Frozen"), ]
 
-# # Stratify annotation table based on FFPE and FF Somatic Variants
-# ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE"), ]
-# frozen_tumoral <- lookup_table[(lookup_table$preservation == "Frozen"), ]
+## Evaluate  dataset
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation"
+)
 
-# ## Evaluate  dataset
-# evaluate_sample_set(
-# 	ffpe_tumoral = ffpe_tumoral,
-# 	frozen_tumoral = frozen_tumoral,
-# 	model_name = model_name,
-# 	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation"
-# )
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-exome"
+)
 
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-exome-blacklist"
+)
 
-# evaluate_sample_set(
-# 	ffpe_tumoral = ffpe_tumoral,
-# 	frozen_tumoral = frozen_tumoral,
-# 	model_name = model_name,
-# 	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-exome"
-# )
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-exome-blacklist-macni"
+)
 
-# evaluate_sample_set(
-# 	ffpe_tumoral = ffpe_tumoral,
-# 	frozen_tumoral = frozen_tumoral,
-# 	model_name = model_name,
-# 	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-exome-blacklist"
-# )
-
-# evaluate_sample_set(
-# 	ffpe_tumoral = ffpe_tumoral,
-# 	frozen_tumoral = frozen_tumoral,
-# 	model_name = model_name,
-# 	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-exome-blacklist-macni"
-# )
-
-# evaluate_sample_set(
-# 	ffpe_tumoral = ffpe_tumoral,
-# 	frozen_tumoral = frozen_tumoral,
-# 	model_name = model_name,
-# 	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-exome-blacklist-macni-micr1234"
-# )
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ffpe_snvf_dir = "../ffpe-snvf/PRJEB44073/filtered_pass-orientation-exome-blacklist-macni-micr1234"
+)
 
 
-# # ##################################  ENA SRP044740  ##############################################
+##################################  ENA SRP044740  ##############################################
 
 # Read Annotation Table
 lookup_table <- read.delim("../annot/SRP044740/sample-info_stage2.tsv")
@@ -217,14 +194,13 @@ lookup_table <- read.delim("../annot/SRP044740/sample-info_stage2.tsv")
 ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE"), ]
 frozen_tumoral <- lookup_table[(lookup_table$preservation == "Frozen"), ]
 
-# ## Evaluate  dataset
-# evaluate_sample_set(
-# 	ffpe_tumoral = ffpe_tumoral,
-# 	frozen_tumoral = frozen_tumoral,
-# 	model_name = model_name,
-# 	ffpe_snvf_dir = "../ffpe-snvf/SRP044740/filtered_pass-orientation"
-# )
-
+## Evaluate  dataset
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ffpe_snvf_dir = "../ffpe-snvf/SRP044740/filtered_pass-orientation"
+)
 
 evaluate_sample_set(
 	ffpe_tumoral = ffpe_tumoral,
@@ -265,13 +241,13 @@ ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE") & (lookup_tab
 frozen_tumoral <- lookup_table[(lookup_table$preservation == "frozen")  & (lookup_table$sample_type == "Tumor"), ]
 
 
-# ## Evaluate dataset
-# evaluate_sample_set(
-# 	ffpe_tumoral = ffpe_tumoral,
-# 	frozen_tumoral = frozen_tumoral,
-# 	model_name = model_name,
-# 	ffpe_snvf_dir = "../ffpe-snvf/SRP065941/filtered_pass-orientation"
-# )
+## Evaluate dataset
+evaluate_sample_set(
+	ffpe_tumoral = ffpe_tumoral,
+	frozen_tumoral = frozen_tumoral,
+	model_name = model_name,
+	ffpe_snvf_dir = "../ffpe-snvf/SRP065941/filtered_pass-orientation"
+)
 
 evaluate_sample_set(
 	ffpe_tumoral = ffpe_tumoral,
