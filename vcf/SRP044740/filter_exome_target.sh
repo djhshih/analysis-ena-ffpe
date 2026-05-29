@@ -13,7 +13,7 @@ filter_vcf() {
     local indir_root="$1"
     local outdir_root="$2"
     # Use the 3rd argument if provided, otherwise default to the hardcoded path
-    local exome_bed_path="${3:-../../pandepth/SRP044740/SRP044740_dp15.bed}"
+    local exome_bed_path="${3:-../../pandepth/SRP044740/SRP044740_pileup-avg-dp15.bed}"
 
     echo -e "Filtering using exome target bed: $(realpath "$exome_bed_path")"
     echo -e "Input directory: $indir_root"

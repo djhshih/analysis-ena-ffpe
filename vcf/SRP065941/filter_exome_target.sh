@@ -14,7 +14,7 @@ filter_vcf() {
     local outdir_root="$2"
 
     local exome_bed_1="../../data/regions/sureselect-all-exon-v5_hg38_regions_200bp-pad.bed"
-    local exome_bed_2="../../pandepth/SRP065941/SRP065941_dp15.bed"
+    local exome_bed_2="../../pandepth/SRP065941/SRP065941_pileup-avg-dp15.bed"
 
     echo -e "Input directory: $indir_root"
     echo -e "Output directory: $outdir_root\n"
