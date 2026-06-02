@@ -95,9 +95,9 @@ def filter_dataset(
 		
 		## Remove variants that is seen in MicroSEC artifacts table
 		if model == "ffperase":
-			filtered_snvf = snvf.join(msec_artifacts, left_on= ["CHR", "START", "REF", "ALT"], right_on=["Chr", "Pos", "Ref", "Alt"], how="semi")
+			filtered_snvf = snvf.join(msec_artifacts, left_on= ["CHR", "START", "REF", "ALT"], right_on=["Chr", "Pos", "Ref", "Alt"], how="anti")
 		else:
-			filtered_snvf = snvf.join(msec_artifacts, left_on = ["chrom", "pos", "ref", "alt"], right_on=["Chr", "Pos", "Ref", "Alt"], how="semi")
+			filtered_snvf = snvf.join(msec_artifacts, left_on = ["chrom", "pos", "ref", "alt"], right_on=["Chr", "Pos", "Ref", "Alt"], how="anti")
 
 		## Write filterd variants to disk
 		filtered_snvf_outdir = f"{repo_root}/ffpe-snvf/{dataset}/{new_variant_set}/{model}/{sample_name}"
