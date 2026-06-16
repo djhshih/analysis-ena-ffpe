@@ -138,6 +138,23 @@ model_name <- "sobdetector"
 # )
 
 
+# #########################################  ENA PRJEB8754  #######################################
+
+# # Read Annotation Table
+# lookup_table <- read.delim("../annot/PRJEB8754/sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv")
+
+# # Stratify annotation table based on FFPE and FF Somatic Variants
+# ffpe_tumoral <- lookup_table[(lookup_table$preservation == "FFPE"), ]
+# frozen_tumoral <- lookup_table[(lookup_table$preservation == "Frozen"), ]
+
+# evaluate_sample_set(
+# 	ffpe_tumoral = ffpe_tumoral,
+# 	frozen_tumoral = frozen_tumoral,
+# 	model_name = model_name,
+# 	ffpe_snvf_dir = "../ffpe-snvf/PRJEB8754/dup-unmarked_filtered_pass-orient-pos-sb"
+# )
+
+
 #################################  ENA PRJEB44073  ########################################
 
 # Read Annotation Table

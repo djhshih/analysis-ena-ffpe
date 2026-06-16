@@ -17,12 +17,14 @@ eval_dirs = c(
 	"SRP065941/filtered_pass-orientation-exome-blacklist-micr1234",
 	"SRP065941/filtered_pass-orientation-exome-blacklist",
 	"SRP065941/filtered_pass-orientation-exome",
-	"SRP065941/filtered_pass-orientation"
+	"SRP065941/filtered_pass-orientation",
+	"PRJEB44073/filtered_pass-orientation",
+	"SRP044740/filtered_pass-orientation"
 )
 
 for (eval_dir in eval_dirs){
 	## List name of models that were evaluated. 
-	models <- c("all-models", "mobsnvf", "vafsnvf", "sobdetector", "gatk-obmm", "microsec", "ideafix", "ffpolish")
+	models <- c("all-models", "mobsnvf", "vafsnvf", "sobdetector", "gatk-obmm", "microsec", "ideafix", "ffpolish", "ffperase")
 
 	message(cat("\tCombining results for: ", eval_dir))
 
