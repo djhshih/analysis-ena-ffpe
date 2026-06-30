@@ -45,5 +45,5 @@ blacklist_filter_vcf() {
 
 # Filter dataset
 # blacklist_filter_vcf "filtered_pass-orientation" "filtered_pass-orientation-blacklist"
-
 blacklist_filter_vcf "filtered_pass-orientation-exome" "filtered_pass-orientation-exome-blacklist"
+blacklist_filter_vcf "filtered_pass-orientation-dp15pileup" "filtered_pass-orientation-dp15pileup-blacklist"
