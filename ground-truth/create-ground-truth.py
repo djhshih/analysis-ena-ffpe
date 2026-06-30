@@ -25,10 +25,10 @@ dataset_dict = {
     "PRJEB8754" : "ENA_Betge15",
     "SRP044740" : "ENA_SRP044740",
     "PRJEB44073" : "ENA_Chong21",
-    "SRP044740" : "ENA_Oh15"
+    "SRP065941" : "ENA_Oh15"
 }
 
-def process_dataset(dataset: str, variant_set: str, annot_path: str, vcf_suffix: str = ".vcf") -> None:
+def process_dataset(dataset: str, variant_set: str, annot_path: str, vcf_suffix: str = ".vcf.gz") -> None:
 	"""
 	Process a dataset to generate ground-truth variant tables for FFPE samples.
 
@@ -63,7 +63,7 @@ def process_dataset(dataset: str, variant_set: str, annot_path: str, vcf_suffix:
 		ffpe_sample_name = path.split("/")[-2]
 		sample_annot = annot.filter(pl.col("sample_name") == ffpe_sample_name)
 		case_id = sample_annot[0, "case_id"]
-		preservation = sample_annot[0, "preservation"]
+		# preservation = sample_annot[0, "preservation"]
 
 		logging.info(f"{i}. Processing FFPE sample: {ffpe_sample_name}")
 
@@ -71,10 +71,10 @@ def process_dataset(dataset: str, variant_set: str, annot_path: str, vcf_suffix:
 		ffpe = (
 			read_variants(path)
 			.pipe(snv_filter)
-			.with_columns(
-				pl.lit(dataset_dict.get(dataset, dataset)).alias("dataset"),
-				pl.lit(ffpe_sample_name).alias("sample_name")
-			)
+			# .with_columns(
+			# 	pl.lit(dataset_dict.get(dataset, dataset)).alias("dataset"),
+			# 	pl.lit(ffpe_sample_name).alias("sample_name")
+			# )
 			.select(["chrom", "pos", "ref", "alt"]) #"dataset", "sample_name", 
 		)
 
@@ -91,7 +91,10 @@ def process_dataset(dataset: str, variant_set: str, annot_path: str, vcf_suffix:
 			ff = (
 				read_variants(ff_sample_path)
 				.pipe(snv_filter)
-				.with_columns(pl.lit(True).alias(ff_col_name))
+				.with_columns(
+					pl.col("pos").cast(pl.Int64),
+					pl.lit(True).alias(ff_col_name)
+				)
 			)
 
 			# Join FFPE and frozen sample on variant coordinates
@@ -111,26 +114,71 @@ def process_dataset(dataset: str, variant_set: str, annot_path: str, vcf_suffix:
 		outpath = f"{outdir}/{ffpe_sample_name}.ground-truth.tsv"
 		ffpe.write_csv(outpath, separator="\t")
 		logging.info(f"\tGround-truth written to: {outpath}")
+
+	logging.info("Complete.\n")
 		
 
 ## ENA Betge15
-process_dataset(
-    dataset="PRJEB8754",
-    variant_set="filtered_pass-orient-pos-sb-ad-blacklist-macni_dup-unmarked",
-    annot_path = f"../annot/PRJEB8754/sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv"
-)
+# process_dataset(
+#     dataset="PRJEB8754",
+#     variant_set="dup-unmarked_raw_filtermutectcalls_obmm_unfiltered",
+#     annot_path = f"../annot/PRJEB8754/sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv"
+# )
+
+# process_dataset(
+#     dataset="PRJEB8754",
+#     variant_set="dup-unmarked_filtered_pass-orient-pos-sb",
+#     annot_path = f"../annot/PRJEB8754/sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv",
+# 	vcf_suffix=".vcf.gz"
+# )
+
+# process_dataset(
+#     dataset="PRJEB8754",
+#     variant_set="dup-unmarked_filtered_pass-orient-pos-sb-vaf-dp",
+#     annot_path = f"../annot/PRJEB8754/sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv",
+# 	vcf_suffix=".vcf.gz"
+# )
+
+# process_dataset(
+#     dataset="PRJEB8754",
+#     variant_set="dup-unmarked_filtered_pass-orient-pos-sb-vaf-dp-macni",
+#     annot_path = f"../annot/PRJEB8754/sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv",
+# 	vcf_suffix=".vcf.gz"
+# )
+
+# process_dataset(
+#     dataset="PRJEB8754",
+#     variant_set="dup-unmarked_filtered_pass-orient-pos-sb-vaf-dp-blacklist",
+#     annot_path = f"../annot/PRJEB8754/sample-info_matched-ff-ffpe_on-pat-id-sample-type.tsv",
+# 	vcf_suffix=".vcf.gz"
+# )
 
 ## ENA Chong21
 process_dataset(
     dataset = "PRJEB44073",
-    variant_set = "filtered_pass-orientation-dp20",
+    variant_set = "filtered_pass-orientation",
     annot_path = f"{repo_root}/annot/PRJEB44073/sample-info_stage3.tsv"
 )
 
 process_dataset(
     dataset = "PRJEB44073",
-    variant_set = "filtered_pass-orientation-dp20-blacklist",
-    annot_path = f"{repo_root}/annot/PRJEB44073/sample-info_stage3.tsv"
+    variant_set = "filtered_pass-orientation-exome",
+    annot_path = f"{repo_root}/annot/PRJEB44073/sample-info_stage3.tsv",
+	vcf_suffix=".vcf.gz"
+)
+
+process_dataset(
+    dataset = "PRJEB44073",
+    variant_set = "filtered_pass-orientation-exome-blacklist",
+    annot_path = f"{repo_root}/annot/PRJEB44073/sample-info_stage3.tsv",
+	vcf_suffix=".vcf.gz"
+)
+
+process_dataset(
+    dataset = "PRJEB44073",
+    variant_set = "filtered_pass-orientation-exome-blacklist-macni",
+    annot_path = f"{repo_root}/annot/PRJEB44073/sample-info_stage3.tsv",
+	vcf_suffix=".vcf.gz"
 )
 
 process_dataset(
@@ -138,36 +186,96 @@ process_dataset(
     variant_set = "filtered_pass-orientation-dp20-blacklist-macni",
     annot_path = f"{repo_root}/annot/PRJEB44073/sample-info_stage3.tsv"
 )
+
 
 ## ENA SRP044740
 process_dataset(
     dataset = "SRP044740",
-    variant_set = "filtered_pass-orientation-dp20",
+    variant_set = "filtered_pass-orientation",
     annot_path = f"{repo_root}/annot/SRP044740/sample-info_stage2.tsv"
 )
 
 process_dataset(
     dataset = "SRP044740",
-    variant_set = "filtered_pass-orientation-dp20-blacklist",
+    variant_set = "filtered_pass-orientation-exome",
     annot_path = f"{repo_root}/annot/SRP044740/sample-info_stage2.tsv"
 )
 
 process_dataset(
     dataset = "SRP044740",
-    variant_set = "filtered_pass-orientation-dp20-blacklist-macni",
+    variant_set = "filtered_pass-orientation-blacklist",
+    annot_path = f"{repo_root}/annot/SRP044740/sample-info_stage2.tsv",
+	vcf_suffix=".vcf.gz"
+)
+
+process_dataset(
+    dataset = "SRP044740",
+    variant_set = "filtered_pass-orientation-blacklist-macni",
+    annot_path = f"{repo_root}/annot/SRP044740/sample-info_stage2.tsv",
+	vcf_suffix=".vcf.gz"
+)
+
+process_dataset(
+    dataset = "SRP044740",
+    variant_set = "filtered_pass-orientation-exome-blacklist",
+    annot_path = f"{repo_root}/annot/SRP044740/sample-info_stage2.tsv"
+)
+
+process_dataset(
+    dataset = "SRP044740",
+    variant_set = "filtered_pass-orientation-exome-blacklist-macni",
+    annot_path = f"{repo_root}/annot/SRP044740/sample-info_stage2.tsv"
+)
+
+process_dataset(
+    dataset = "SRP044740",
+    variant_set = "filtered_pass-orientation-dp15pileup",
+    annot_path = f"{repo_root}/annot/SRP044740/sample-info_stage2.tsv"
+)
+
+process_dataset(
+    dataset = "SRP044740",
+    variant_set = "filtered_pass-orientation-dp15pileup-blacklist",
+    annot_path = f"{repo_root}/annot/SRP044740/sample-info_stage2.tsv"
+)
+
+process_dataset(
+    dataset = "SRP044740",
+    variant_set = "filtered_pass-orientation-dp15pileup-blacklist-macni",
     annot_path = f"{repo_root}/annot/SRP044740/sample-info_stage2.tsv"
 )
 
 ## ENA Oh15
 process_dataset(
     dataset = "SRP065941",
+    variant_set = "filtered_pass-orientation",
+    annot_path = f"{repo_root}/annot/SRP065941/sample_annotation_stage2_tumor-only.tsv"
+)
+
+process_dataset(
+    dataset = "SRP065941",
     variant_set = "filtered_pass-orientation-dp20",
     annot_path = f"{repo_root}/annot/SRP065941/sample_annotation_stage2_tumor-only.tsv"
 )
 
 process_dataset(
     dataset = "SRP065941",
-    variant_set = "filtered_pass-orientation-dp20-blacklist",
-    annot_path = f"{repo_root}/annot/SRP065941/sample_annotation_stage2_tumor-only.tsv"
+    variant_set = "filtered_pass-orientation-blacklist",
+    annot_path = f"{repo_root}/annot/SRP065941/sample_annotation_stage2_tumor-only.tsv",
+	vcf_suffix=".vcf.gz"
+)
+
+process_dataset(
+    dataset = "SRP065941",
+    variant_set = "filtered_pass-orientation-exome",
+    annot_path = f"{repo_root}/annot/SRP065941/sample_annotation_stage2_tumor-only.tsv",
+	vcf_suffix=".vcf.gz"
+)
+
+process_dataset(
+    dataset = "SRP065941",
+    variant_set = "filtered_pass-orientation-exome-blacklist",
+    annot_path = f"{repo_root}/annot/SRP065941/sample_annotation_stage2_tumor-only.tsv",
+	vcf_suffix=".vcf.gz"
 )
 
